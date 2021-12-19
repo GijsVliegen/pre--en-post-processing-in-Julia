@@ -6,3 +6,7 @@ if isClose(quOne, quTwo, 0.01, 0.01)
 else
     println("niet yeet")
 end    
+
+eA = eulerAngle(1, 1, 1)
+rotMatrix = eulerAngleToRotationMatrix(eA)
+print(rotMatrix)
