@@ -1,3 +1,5 @@
+using LinearAlgebra
+
 P = 1
 
 struct quaternion
@@ -21,6 +23,16 @@ struct axisAnglePair
     n
     omega
 end
+
+struct rodriguesFrank
+end
+
+struct homochoric
+end
+
+function normalize(rot ::quaternion)
+    abs_val = sqrt(rot.angle^2 + rot.i^2 + rot.j^2 + rot.k^2)
+    return quaternion(rot.angle/abs_val, rot.i/abs_val, rot.j/abs_val, rot.k/abs_val)
 
 function getComponents(rot ::quaternion)
     return [rot.i, rot.j, rot.k, rot.angle]
@@ -89,25 +101,70 @@ function eulerAngleToQuaternion(rotation ::eulerAngle)
     return quaternion(c*cos(sigma), -P*s*cos(delta), -P*s*sin(delta), -P*c*sin(sigma))
 end
 
-function rotationMatrixToEulerAngle()
+function rotationMatrixToEulerAngle(rotation ::rotationMatrix)
+    a_33 = rotation.matrix[3, 3]
+    if abs(a_33) != 1
+        zeta = 1/sqrt(1-a_33^2)
+        phi1 = atan(rotation.matrix[3, 1]*zeta, -rotation.matrix[3, 2]*zeta) 
+        PHI = acos(a_33)
+        phi2 = atan(rotation.matrix[1, 3]*zeta, rotation.matrix[2, 3]*zeta)
+        return eulerAngle(phi1, PHI, phi2)
+    else
+        phi1 = atan(rotation.matrix[1, 2], rotation.matrix[1, 1])
+        PHI = pi/2*(1 - a_33)
+        return eulerAngle(phi1, PHI, 0)
 end
 
-function rotationMatrixToAxisAngle()
+function rotationMatrixToAxisAngle(rotation ::rotationMatrix)
+    omega = acos((tr(rotation.matrix) - 1)/2)
+    #is voor een volgende keer
 end
 
-function rotationMatrixToQuaternion()
+function rotationMatrixToQuaternion(rotation ::rotationMatrix)
+    a = rotation.matrix
+    q0 = 1/2*sqrt(1 + a[1, 1] + a[2, 2] + a[3,3])
+    q1 = P/2*sqrt(1 + a[1, 1] - a[2, 2] - a[3,3])
+    q2 = P/2*sqrt(1 - a[1, 1] + a[2, 2] - a[3,3])
+    q3 = P/2*sqrt(1 - a[1, 1] - a[2, 2] + a[3,3])
+    if (a[3,2] < a[2, 3])
+        q1 = -q1
+    if (a[1, 3] < a[3, 1])
+        q2 = -q2
+    if (a[2, 1] < a[1, 2])
+        q3 = -q3
+    return normalize(quaternion(q0, q1, q2, q3))
 end
 
-function axisAngleToRotationMatrix()
+function axisAngleToRotationMatrix(rotation ::axisAnglePair)
+    n = rotation.n
+    c = cos(rotation.omega)
+    s = sin(rotation.omega)
+    a = [c+(1-c)*n[1]^2 (1-c)*n[1]*n[2]+s*n[3] (1-c)*n[1]*n[3]-s*n[2]; 
+    (1-c)*n[1]*n[2]-s*n[3] c+(1-c)*n[2]^2 (1-c)*n[2]*n[3]+s*n[1];
+    (1-c)*n[1]*n[3]+s*n[2] (1-c)*n[2]*n[3]-sn[1] c+(1-c)*n[3]^2]
+    if (P == 1)
+        a = transpose(a)
+    return a
 end
 
-function axisAngleToRodriguesFrank()
+function axisAngleToRodriguesFrank(rotation ::axisAnglePair)
+    #wat als omega = pi???
+    return rodriguesFrank(rotation.n*tan(rotation.omega/2))
 end
 
-function axisAngleToHomochoric()
+function axisAngleToQuaternion(rotation ::axisAnglePair)
+    n = rotation.n*sin(rotation.omega/2)
+    return quaternion(n[1], n[2], n[3], cos(rotation.omega/2))
 end
 
-function rodriguesFrankToAxisAngle()
+function axisAngleToHomochoric(rotation ::axisAnglePair)
+    f = (3/4(rotation.omega - sin(rotation.omega)))^(1/3)
+    return homochoric(rotation.n*f)
+end
+
+function rodriguesFrankToAxisAngle(rotation ::rodriguesFrank)
+    rho = abs(rotation.rho)
+    return axisAnglePair(rotation.rho/rho, 2*arctan(rho))
 end
 
 function rodriguesFrankToHomochoric()
