@@ -46,6 +46,7 @@ end
 function copy(rot ::quaternion)
     return quaternion(rot.i, rot.j, rot.k, rot.angle)
 
+end
 #in tegenstelling tot in damask wordt er niet rekening gehouden met NaN values
 #dit doen we omdat het niet is ingebouwd in isapprox()
 
@@ -117,6 +118,7 @@ function rotationMatrixToEulerAngle(rotation ::rotationMatrix)
         phi1 = atan(rotation.matrix[1, 2], rotation.matrix[1, 1])
         PHI = pi/2*(1 - a_33)
         return eulerAngle(phi1, PHI, 0)
+    end
 end
 
 function rotationMatrixToAxisAngle(rotation ::rotationMatrix)
@@ -132,10 +134,13 @@ function rotationMatrixToQuaternion(rotation ::rotationMatrix)
     q3 = P/2*sqrt(1 - a[1, 1] - a[2, 2] + a[3,3])
     if (a[3,2] < a[2, 3])
         q1 = -q1
+    end
     if (a[1, 3] < a[3, 1])
         q2 = -q2
+    end
     if (a[2, 1] < a[1, 2])
         q3 = -q3
+    end
     return normalize(quaternion(q0, q1, q2, q3))
 end
 
@@ -148,6 +153,7 @@ function axisAngleToRotationMatrix(rotation ::axisAnglePair)
     (1-c)*n[1]*n[3]+s*n[2] (1-c)*n[2]*n[3]-sn[1] c+(1-c)*n[3]^2]
     if (P == 1)
         a = transpose(a)
+    end
     return a
 end
 
@@ -175,6 +181,7 @@ function rodriguesFrankToHomochoric(rotation ::rodriguesFrank)
     rho = abs(rotation.rho)
     if (rho == 0) 
         return homochoric([0, 0, 0])
+    end
     #is het nodig om rho == oneindig te behandelen
     w = 2*atan()
     f = 3(rotation.omega - sin(rotation.omega))/4 
