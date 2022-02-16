@@ -42,7 +42,7 @@ function toQuaternion(rot ::quaternion)
     return rot
 end
 
-function copyOfQuaternion(rot ::quaternion)
+function copy(rot ::quaternion)
     return quaternion(rot.i, rot.j, rot.k, rot.angle)
 
 #in tegenstelling tot in damask wordt er niet rekening gehouden met NaN values
@@ -170,7 +170,13 @@ function rodriguesFrankToAxisAngle(rotation ::rodriguesFrank)
     return axisAnglePair(rotation.rho/rho, 2*arctan(rho))
 end
 
-function rodriguesFrankToHomochoric()
+function rodriguesFrankToHomochoric(rotation ::rodriguesFrank)
+    rho = abs(rotation.rho)
+    if (rho == 0) 
+        return homochoric([0, 0, 0])
+    #is het nodig om rho == oneindig te behandelen
+    w = 2*atan()
+    f = 3(rotation.omega - sin(rotation.omega))/4 
 end
 
 function quaternionToEulerAngle()
