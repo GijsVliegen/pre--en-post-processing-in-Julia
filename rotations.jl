@@ -1,4 +1,5 @@
 using LinearAlgebra
+import Base: copy
 
 P = 1
 
@@ -115,7 +116,7 @@ function rotationMatrixToEulerAngle(rotation ::rotationMatrix)
     a_33 = rotation.matrix[3, 3]
     if abs(a_33) != 1
         zeta = 1/sqrt(1-a_33^2)
-        phi1 = atan(rotation.matrix[3, 1]*zeta, -rotation.matrix[3, 2]*zeta) 
+        phi1 = atan(rotation.matrix[3, 1]*zeta, -rotation.matrix[3, 2]*zeta)
         PHI = acos(a_33)
         phi2 = atan(rotation.matrix[1, 3]*zeta, rotation.matrix[2, 3]*zeta)
         return eulerAngle(phi1, PHI, phi2)
@@ -153,7 +154,7 @@ function axisAngleToRotationMatrix(rotation ::axisAnglePair)
     n = rotation.n
     c = cos(rotation.omega)
     s = sin(rotation.omega)
-    a = [c+(1-c)*n[1]^2 (1-c)*n[1]*n[2]+s*n[3] (1-c)*n[1]*n[3]-s*n[2]; 
+    a = [c+(1-c)*n[1]^2 (1-c)*n[1]*n[2]+s*n[3] (1-c)*n[1]*n[3]-s*n[2];
     (1-c)*n[1]*n[2]-s*n[3] c+(1-c)*n[2]^2 (1-c)*n[2]*n[3]+s*n[1];
     (1-c)*n[1]*n[3]+s*n[2] (1-c)*n[2]*n[3]-sn[1] c+(1-c)*n[3]^2]
     if (P == 1)
@@ -185,12 +186,12 @@ end
 
 function rodriguesFrankToHomochoric(rotation ::rodriguesFrank)
     rho = abs(rotation.rho)
-    if (rho == 0) 
+    if (rho == 0)
         return homochoric([0, 0, 0])
     end
     #is het nodig om rho == oneindig te behandelen
     w = 2*atan(rho)
-    f = 3(w - sin(w))/4 
+    f = 3(w - sin(w))/4
     return homochoric(rotation.n*f^(1/3))
 end
 
@@ -207,7 +208,7 @@ function quaternionToEulerAngle(rotation ::quaternion)
     elseif (x == 0 && q03 == 0)
         return eulerAngle(atan(2*q1*q2, q1^2 - q2^2), pi, 0)
     else #als x != 0
-        return eulerAngle(atan((q1*q3 - P*q0*q2)/x,(-P*q0*q1 - q2*q3)/x), 
+        return eulerAngle(atan((q1*q3 - P*q0*q2)/x,(-P*q0*q1 - q2*q3)/x),
             atan(2*x, q03-q12), atan((P*q0*q2 + q1*q3)/x, (q2*q3 - P*q0*q1)/x))
     end
 end
@@ -219,7 +220,7 @@ function quaternionToRotationMatrix(rotation ::quaternion)
     q2 = rotation.j
     q3 = rotation.k
     q = q0^2 - (q1^2 + q2^2 + q3^2)
-    a = [q+2*q1^2 2*(q1*q2-P*q0*q3) 2*(q1*q3+P*q0*q2); 
+    a = [q+2*q1^2 2*(q1*q2-P*q0*q3) 2*(q1*q3+P*q0*q2);
         2(q1*q2+P*q0*q3) q+2*q2^2 2*(q2*q3-P*q0*q1);
         2*(q1*q3-P*q0*q2) 2*(q2*q3+P*q0*q1) q+2*q3^2]
     return a
