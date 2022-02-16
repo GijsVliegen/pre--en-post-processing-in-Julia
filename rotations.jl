@@ -42,6 +42,9 @@ function toQuaternion(rot ::quaternion)
     return rot
 end
 
+function copyOfQuaternion(rot ::quaternion)
+    return quaternion(rot.i, rot.j, rot.k, rot.angle)
+
 #in tegenstelling tot in damask wordt er niet rekening gehouden met NaN values
 #dit doen we omdat het niet is ingebouwd in isapprox()
 
