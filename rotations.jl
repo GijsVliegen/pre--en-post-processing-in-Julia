@@ -25,9 +25,11 @@ struct axisAnglePair
 end
 
 struct rodriguesFrank
+    n
 end
 
 struct homochoric
+    h
 end
 
 function normalize(rot ::quaternion)
@@ -94,8 +96,10 @@ end
 
 function eulerAngleToRodriguesFrank(rotation ::eulerAngle)
     #EA naar AA en dan AA naar RF
+
+    #nog eens nakijken
     axisAngle = eulerAngleToAxisAngle(rotation)
-    return rodriguesFrankVector(axisAngle.n, tan(axisAngle.w/2))
+    return rodriguesFrank(axisAngle.n, tan(axisAngle.w/2))
 end
 
 function eulerAngleToQuaternion(rotation ::eulerAngle)
@@ -173,8 +177,8 @@ function axisAngleToHomochoric(rotation ::axisAnglePair)
 end
 
 function rodriguesFrankToAxisAngle(rotation ::rodriguesFrank)
-    rho = abs(rotation.rho)
-    return axisAnglePair(rotation.rho/rho, 2*arctan(rho))
+    rho = abs(rotation.n)
+    return axisAnglePair(rotation.n/rho, 2*arctan(rho))
 end
 
 function rodriguesFrankToHomochoric(rotation ::rodriguesFrank)
@@ -183,23 +187,82 @@ function rodriguesFrankToHomochoric(rotation ::rodriguesFrank)
         return homochoric([0, 0, 0])
     end
     #is het nodig om rho == oneindig te behandelen
-    w = 2*atan()
-    f = 3(rotation.omega - sin(rotation.omega))/4 
+    w = 2*atan(rho)
+    f = 3(w - sin(w))/4 
+    return homochoric(rotation.n*f^(1/3))
 end
 
-function quaternionToEulerAngle()
+function quaternionToEulerAngle(rotation ::quaternion)
+    q0 = rotation.angle
+    q1 = rotation.i
+    q2 = rotation.j
+    q3 = rotation.k
+    q03 = q0^2 + q3^2
+    q12 = q1^2 + q3^2
+    x = sqrt(q03 * q12)
+    if (x == 0 && q12 == 0)
+        return eulerAngle(atan(-2*P*q0*q3, q0^2 - q3^2), 0, 0)
+    else if (x == 0 && q03 == 0)
+        return eulerAngle(atan(2*q1*q2, q1^2 - q2^2), pi, 0)
+    else #als x != 0
+        return eulerAngle(atan((q1*q3 - P*q0*q2)/x,(-P*q0*q1 - q2*q3)/x), 
+            atan(2*x, q03-q12), atan((P*q0*q2 + q1*q3)/x, (q2*q3 - P*q0*q1)/x))
+    end
 end
 
-function quaternionToRotationMatrix()
+function quaternionToRotationMatrix(rotation ::quaternion)
+    #geeft passieve interpretatie
+    q0 = rotation.angle
+    q1 = rotation.i
+    q2 = rotation.j
+    q3 = rotation.k
+    q = q0^2 - (q1^2 + q2^2 + q3^2)
+    a = [q+2*q1^2 2*(q1*q2-P*q0*q3) 2*(q1*q3+P*q0*q2); 
+        2(q1*q2+P*q0*q3) q+2*q2^2 2*(q2*q3-P*q0*q1);
+        2*(q1*q3-P*q0*q2) 2*(q2*q3+P*q0*q1) q+2*q3^2]
 end
 
-function quaternionToAxisAngle()
+function quaternionToAxisAngle(rotation ::quaternion)
+    q0 = rotation.angle
+    q1 = rotation.i
+    q2 = rotation.j
+    q3 = rotation.k
+    w = 2*acos(q0)
+    if (w == 0)
+        return axisAnglePair([0, 0, 1], 0)
+    end
+    if (q0 == 0)
+        return axisAnglePair([q1, q2, q3], pi)
+    end
+    s = sign(q0)/sqrt(q1^2 + q2^2 + q3^2)
+    return axisAnglePair([s*q1, s*q2, s*q3], w)
 end
 
 function quaternionToRodriguesFrank()
+    q0 = rotation.angle
+    q1 = rotation.i
+    q2 = rotation.j
+    q3 = rotation.k
+    s = sqrt(q1^2 + q2^2 + q3^2)
+    t = tan(acos(q0))
+    #oppassen als s klein wordt!!!
+    #rodriguesFrank opslaan als vector van 4 elementen
+    return rodriguesFrank([q1/s, q2/s, q3/s, t])
 end
 
 function quaternionToHomochoric()
+    q0 = rotation.angle
+    q1 = rotation.i
+    q2 = rotation.j
+    q3 = rotation.k
+    w = 2*acos(q0)
+    if w == 0
+        return homochoric([0, 0, 0])
+    end
+    s = 1/sqrt(q1^2 + q2^2 + q3^2)
+    n = [s*q1, s*q2, s*q3]
+    f = 3(w-sin(w))/4
+    return homochoric(n*f^(1/3))
 end
 
 function homochoricToAxisAngle()
