@@ -32,7 +32,7 @@ end
 
 
 @testset "rotations.jl" begin
-    #conversion between eulerAngle and quaternion
+    # conversion between eulerAngle and quaternion
     @test begin
                 result = true
                 for q in quaternions
@@ -44,6 +44,48 @@ end
                     end
                 end
             result
-            end
+        end
+
+    # conversion between rotationMatrix and quaternion
+    @test begin
+                result = true
+                for q in quaternions
+                    m = quaternionToRotationMatrix(q)
+                    q1 = rotationMatrixToQuaternion(m)
+                    if !isClose(q,q1,10^(-13),10^(-13))
+                        result = false
+                        break
+                    end
+                end
+            result
+        end
+
+    # conversion between axisAngle and quaternion
+    @test begin
+                result = true
+                for q in quaternions
+                    a = quaternionToAxisAngle(q)
+                    q1 = axisAngleToQuaternion(a)
+                    if !isClose(q,q1,10^(-13),10^(-13))
+                        result = false
+                        break
+                    end
+                end
+            result
+        end
+
+    # conversion between rodriguesFrank and quaternion (not yet implemented)
+    @test begin
+                result = true
+                for q in quaternions
+                    r = quaternionToRodriguesFrank(q)
+                    q1 = rodriguesFrankToQuaternion(r)
+                    if !isClose(q,q1,10^(-13),10^(-13))
+                        result = false
+                        break
+                    end
+                end
+            result
+        end
 
 end
