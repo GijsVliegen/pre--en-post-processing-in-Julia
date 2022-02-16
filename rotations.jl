@@ -33,6 +33,7 @@ end
 function normalize(rot ::quaternion)
     abs_val = sqrt(rot.angle^2 + rot.i^2 + rot.j^2 + rot.k^2)
     return quaternion(rot.angle/abs_val, rot.i/abs_val, rot.j/abs_val, rot.k/abs_val)
+end
 
 function getComponents(rot ::quaternion)
     return [rot.i, rot.j, rot.k, rot.angle]
