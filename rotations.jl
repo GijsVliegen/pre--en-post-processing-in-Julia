@@ -26,6 +26,7 @@ end
 
 struct rodriguesFrank
     n
+    f
 end
 
 struct homochoric
@@ -163,7 +164,8 @@ end
 
 function axisAngleToRodriguesFrank(rotation ::axisAnglePair)
     #wat als omega = pi???
-    return rodriguesFrank(rotation.n*tan(rotation.omega/2))
+    f = tan(rotation.omega/2)
+    return rodriguesFrank(rotation.n*f, f)
 end
 
 function axisAngleToQuaternion(rotation ::axisAnglePair)
@@ -202,7 +204,7 @@ function quaternionToEulerAngle(rotation ::quaternion)
     x = sqrt(q03 * q12)
     if (x == 0 && q12 == 0)
         return eulerAngle(atan(-2*P*q0*q3, q0^2 - q3^2), 0, 0)
-    else if (x == 0 && q03 == 0)
+    elseif (x == 0 && q03 == 0)
         return eulerAngle(atan(2*q1*q2, q1^2 - q2^2), pi, 0)
     else #als x != 0
         return eulerAngle(atan((q1*q3 - P*q0*q2)/x,(-P*q0*q1 - q2*q3)/x), 
@@ -220,6 +222,7 @@ function quaternionToRotationMatrix(rotation ::quaternion)
     a = [q+2*q1^2 2*(q1*q2-P*q0*q3) 2*(q1*q3+P*q0*q2); 
         2(q1*q2+P*q0*q3) q+2*q2^2 2*(q2*q3-P*q0*q1);
         2*(q1*q3-P*q0*q2) 2*(q2*q3+P*q0*q1) q+2*q3^2]
+    return a
 end
 
 function quaternionToAxisAngle(rotation ::quaternion)
@@ -247,7 +250,7 @@ function quaternionToRodriguesFrank()
     t = tan(acos(q0))
     #oppassen als s klein wordt!!!
     #rodriguesFrank opslaan als vector van 4 elementen
-    return rodriguesFrank([q1/s, q2/s, q3/s, t])
+    return rodriguesFrank([q1/s, q2/s, q3/s], t)
 end
 
 function quaternionToHomochoric()
