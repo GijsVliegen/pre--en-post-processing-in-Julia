@@ -11,6 +11,7 @@ struct quaternion
 end
 
 struct eulerAngle
+    #ZXZ structuur
     phi1
     PHI
     phi2
@@ -109,7 +110,12 @@ function eulerAngleToQuaternion(rotation ::eulerAngle)
     delta = (rotation.phi1 - rotation.phi2)/2.0
     c = cos(rotation.PHI/2)
     s = sin(rotation.PHI/2)
-    return quaternion(c*cos(sigma), -P*s*cos(delta), -P*s*sin(delta), -P*c*sin(sigma))
+    q0 = c*cos(sigma)
+    if q0 < 0
+        return quaternion(P*s*cos(delta), P*s*sin(delta), P*c*sin(sigma), q0)
+    else
+        return quaternion(-P*s*cos(delta), -P*s*sin(delta), -P*c*sin(sigma), q0)
+    end
 end
 
 function rotationMatrixToEulerAngle(rotation ::rotationMatrix)
@@ -129,7 +135,12 @@ end
 
 function rotationMatrixToAxisAngle(rotation ::rotationMatrix)
     omega = acos((tr(rotation.matrix) - 1)/2)
-    #is voor een volgende keer
+    #inspiratie voor de code: https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/index.htm
+    #dit algo komt niet uit de paper, die onduidelijk was, opletten voor omega = 0 of omega = pi
+    #omega = 0 -> x y en z zijn arbitrair
+    #omega = pi -> x y en z maken uit dus moeten berekend worden
+    #handelen van singularities: https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/david.htm
+    
 end
 
 function rotationMatrixToQuaternion(rotation ::rotationMatrix)
@@ -160,7 +171,7 @@ function axisAngleToRotationMatrix(rotation ::axisAnglePair)
     if (P == 1)
         a = transpose(a)
     end
-    return a
+    return rotationMatrix(a)
 end
 
 function axisAngleToRodriguesFrank(rotation ::axisAnglePair)
@@ -196,12 +207,13 @@ function rodriguesFrankToHomochoric(rotation ::rodriguesFrank)
 end
 
 function quaternionToEulerAngle(rotation ::quaternion)
+    #moet unit quaternion zijn
     q0 = rotation.angle
     q1 = rotation.i
     q2 = rotation.j
     q3 = rotation.k
     q03 = q0^2 + q3^2
-    q12 = q1^2 + q3^2
+    q12 = q1^2 + q2^2
     x = sqrt(q03 * q12)
     if (x == 0 && q12 == 0)
         return eulerAngle(atan(-2*P*q0*q3, q0^2 - q3^2), 0, 0)
@@ -214,6 +226,7 @@ function quaternionToEulerAngle(rotation ::quaternion)
 end
 
 function quaternionToRotationMatrix(rotation ::quaternion)
+    #moet unit quaternion zijn
     #geeft passieve interpretatie
     q0 = rotation.angle
     q1 = rotation.i
@@ -223,7 +236,7 @@ function quaternionToRotationMatrix(rotation ::quaternion)
     a = [q+2*q1^2 2*(q1*q2-P*q0*q3) 2*(q1*q3+P*q0*q2);
         2(q1*q2+P*q0*q3) q+2*q2^2 2*(q2*q3-P*q0*q1);
         2*(q1*q3-P*q0*q2) 2*(q2*q3+P*q0*q1) q+2*q3^2]
-    return a
+    return rotationMatrix(a)
 end
 
 function quaternionToAxisAngle(rotation ::quaternion)
@@ -242,7 +255,7 @@ function quaternionToAxisAngle(rotation ::quaternion)
     return axisAnglePair([s*q1, s*q2, s*q3], w)
 end
 
-function quaternionToRodriguesFrank()
+function quaternionToRodriguesFrank(rotation ::quaternion)
     q0 = rotation.angle
     q1 = rotation.i
     q2 = rotation.j
@@ -254,7 +267,7 @@ function quaternionToRodriguesFrank()
     return rodriguesFrank([q1/s, q2/s, q3/s], t)
 end
 
-function quaternionToHomochoric()
+function quaternionToHomochoric(rotation ::quaternion)
     q0 = rotation.angle
     q1 = rotation.i
     q2 = rotation.j
