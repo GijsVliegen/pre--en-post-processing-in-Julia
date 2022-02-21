@@ -290,3 +290,72 @@ end
 
 function qubochoricToHomochoric()
 end
+
+function toQuaternion(rotation ::eulerAngle)
+    return eulerAngleToQuaternion(rotation)
+end
+
+function toQuaternion(rotation ::rotationMatrix)
+    return rotationMatrixToQuaternion(rotation)
+end
+
+function toQuaternion(rotation ::axisAnglePair)
+    return axisAngleToQuaternion(rotation)
+end
+
+function toQuaternion(rotation ::rodriguesFrank)
+    ap = rodriguesFrankToAxisAngle(rotation)
+    return axisAngleToQuaternion(ap)
+end
+
+function toQuaternion(rotation ::homochoric)
+    ap = rodriguesFrankToHomochoric(rotation)
+    return axisAngleToQuaternion(ap)
+end
+
+function toOriginal(rotation ::quaternion) ::eulerAngle
+    return quaternionToEulerAngle(rotation)
+end
+
+function toOriginal(rotation ::quaternion) ::axisAnglePair
+    return quaternionToAxisAngle(rotation)
+end
+
+function toOriginal(rotation ::quaternion) ::rotationMatrix
+    return quaternionToRotationMatrix(rotation)
+end
+
+function toOriginal(rotation ::quaternion) ::rodriguesFrank
+    return quaternionToRodriguesFrank(rotation)
+end
+
+function toOriginal(rotation ::quaternion) ::homochoric
+    return quaternionToHomochoric(rotation)
+end
+
+function multiply(rotation ::quaternion, nr) ::quaternion
+    #invullen
+end
+
+function multiply(rotation ::rotation, nr) ::rotation
+    qu = toQuaternion(rotation)
+    qu = multiply(qu, nr)
+    rotation = toOriginal(qu)
+    #is het mogelijk om een <T subclass rotation> te doen, zodat ge 
+    #meteen "return toOriginal()" kunt doen, omdat het return type
+    #dan hetzelfde moet zijn als het argument
+    return rotation
+end
+
+function add(first ::quaternion, sec ::quaternion) ::quaternion
+    #invullen
+end
+
+#return rotatie type van first argument
+function add(first ::rotation, sec ::rotation) ::rotation
+    quFirst = toQuaternion(first)
+    quSec = toQuaternion(sec)
+    sum = add(quFirst, quSec)
+    first = toOriginal(sum)
+    return first
+end
