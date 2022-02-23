@@ -101,7 +101,7 @@ function toRodriguesFrank(rotation ::eulerAngle)
     #EA naar AA en dan AA naar RF
 
     #nog eens nakijken
-    axisAngle = eulerAngleToAxisAngle(rotation)
+    axisAngle = toAxisAngle(rotation)
     return rodriguesFrank(axisAngle.n, tan(axisAngle.w/2))
 end
 
@@ -292,45 +292,45 @@ function toHomochoric()
 end
 
 function toQuaternion(rotation ::eulerAngle)
-    return eulerAngleToQuaternion(rotation)
+    return toQuaternion(rotation)
 end
 
 function toQuaternion(rotation ::rotationMatrix)
-    return rotationMatrixToQuaternion(rotation)
+    return toQuaternion(rotation)
 end
 
 function toQuaternion(rotation ::axisAnglePair)
-    return axisAngleToQuaternion(rotation)
+    return toQuaternion(rotation)
 end
 
 function toQuaternion(rotation ::rodriguesFrank)
-    ap = rodriguesFrankToAxisAngle(rotation)
-    return axisAngleToQuaternion(ap)
+    ap = toAxisAngle(rotation)
+    return toQuaternion(ap)
 end
 
 function toQuaternion(rotation ::homochoric)
-    ap = rodriguesFrankToHomochoric(rotation)
-    return axisAngleToQuaternion(ap)
+    ap = toHomochoric(rotation)
+    return toQuaternion(ap)
 end
 
 function toOriginal(rotation ::quaternion) ::eulerAngle
-    return quaternionToEulerAngle(rotation)
+    return toEulerAngle(rotation)
 end
 
 function toOriginal(rotation ::quaternion) ::axisAnglePair
-    return quaternionToAxisAngle(rotation)
+    return toAxisAngle(rotation)
 end
 
 function toOriginal(rotation ::quaternion) ::rotationMatrix
-    return quaternionToRotationMatrix(rotation)
+    return toRotationMatrix(rotation)
 end
 
 function toOriginal(rotation ::quaternion) ::rodriguesFrank
-    return quaternionToRodriguesFrank(rotation)
+    return toRodriguesFrank(rotation)
 end
 
 function toOriginal(rotation ::quaternion) ::homochoric
-    return quaternionToHomochoric(rotation)
+    return toHomochoric(rotation)
 end
 
 function multiply(rotation ::quaternion, nr) ::quaternion
