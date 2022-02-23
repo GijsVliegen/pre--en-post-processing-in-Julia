@@ -36,8 +36,8 @@ end
     @test begin
                 result = true
                 for q in quaternions
-                    e = quaternionToEulerAngle(q)
-                    q1 = eulerAngleToQuaternion(e)
+                    e = toEulerAngle(q)
+                    q1 = toQuaternion(e)
                     if !isClose(q,q1,10^(-13),10^(-13))
                         result = false
                         break
@@ -50,8 +50,8 @@ end
     @test begin
                 result = true
                 for q in quaternions
-                    m = quaternionToRotationMatrix(q)
-                    q1 = rotationMatrixToQuaternion(m)
+                    m = toRotationMatrix(q)
+                    q1 = toQuaternion(m)
                     if !isClose(q,q1,10^(-13),10^(-13))
                         result = false
                         break
@@ -64,8 +64,8 @@ end
     @test begin
                 result = true
                 for q in quaternions
-                    a = quaternionToAxisAngle(q)
-                    q1 = axisAngleToQuaternion(a)
+                    a = toAxisAngle(q)
+                    q1 = toQuaternion(a)
                     if !isClose(q,q1,10^(-13),10^(-13))
                         result = false
                         break
@@ -78,8 +78,8 @@ end
     @test begin
                 result = true
                 for q in quaternions
-                    r = quaternionToRodriguesFrank(q)
-                    q1 = rodriguesFrankToQuaternion(r)
+                    r = toRodriguesFrank(q)
+                    q1 = toQuaternion(r)
                     if !isClose(q,q1,10^(-13),10^(-13))
                         result = false
                         break

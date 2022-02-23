@@ -74,7 +74,7 @@ end
 
 #voor de gebruiksvriendelijkheid kan het idee van bovenstaande code ook gebruikt worden.
 
-function eulerAngleToRotationMatrix(rotation ::eulerAngle)
+function toRotationMatrix(rotation ::eulerAngle)
     c1 = cos(rotation.phi1)
     s1 = sin(rotation.phi1)
     c2 = cos(rotation.phi2)
@@ -85,7 +85,7 @@ function eulerAngleToRotationMatrix(rotation ::eulerAngle)
     return rotationMatrix(matrix)
 end
 
-function eulerAngleToAxisAngle(rotation ::eulerAngle)::axisAnglePair
+function toAxisAngle(rotation ::eulerAngle)::axisAnglePair
     t = tan(rotation.PHI/2)
     sigma = (rotation.phi1 + rotation.phi2)/2.0
     delta = (rotation.phi1 - rotation.phi2)/2.0
@@ -97,7 +97,7 @@ function eulerAngleToAxisAngle(rotation ::eulerAngle)::axisAnglePair
     return axisAnglePair([P/t*cos(delta) P/t*sin(delta) P/t*sin(sigma)], a)
 end
 
-function eulerAngleToRodriguesFrank(rotation ::eulerAngle)
+function toRodriguesFrank(rotation ::eulerAngle)
     #EA naar AA en dan AA naar RF
 
     #nog eens nakijken
@@ -105,7 +105,7 @@ function eulerAngleToRodriguesFrank(rotation ::eulerAngle)
     return rodriguesFrank(axisAngle.n, tan(axisAngle.w/2))
 end
 
-function eulerAngleToQuaternion(rotation ::eulerAngle)
+function toQuaternion(rotation ::eulerAngle)
     sigma = (rotation.phi1 + rotation.phi2)/2.0
     delta = (rotation.phi1 - rotation.phi2)/2.0
     c = cos(rotation.PHI/2)
@@ -118,7 +118,7 @@ function eulerAngleToQuaternion(rotation ::eulerAngle)
     end
 end
 
-function rotationMatrixToEulerAngle(rotation ::rotationMatrix)
+function toEulerAngle(rotation ::rotationMatrix)
     a_33 = rotation.matrix[3, 3]
     if abs(a_33) != 1
         zeta = 1/sqrt(1-a_33^2)
@@ -133,17 +133,17 @@ function rotationMatrixToEulerAngle(rotation ::rotationMatrix)
     end
 end
 
-function rotationMatrixToAxisAngle(rotation ::rotationMatrix)
+function toAxisAngle(rotation ::rotationMatrix)
     omega = acos((tr(rotation.matrix) - 1)/2)
     #inspiratie voor de code: https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/index.htm
     #dit algo komt niet uit de paper, die onduidelijk was, opletten voor omega = 0 of omega = pi
     #omega = 0 -> x y en z zijn arbitrair
     #omega = pi -> x y en z maken uit dus moeten berekend worden
     #handelen van singularities: https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/david.htm
-    
+
 end
 
-function rotationMatrixToQuaternion(rotation ::rotationMatrix)
+function toQuaternion(rotation ::rotationMatrix)
     a = rotation.matrix
     q0 = 1/2*sqrt(1 + a[1, 1] + a[2, 2] + a[3,3])
     q1 = P/2*sqrt(1 + a[1, 1] - a[2, 2] - a[3,3])
@@ -161,7 +161,7 @@ function rotationMatrixToQuaternion(rotation ::rotationMatrix)
     return normalize(quaternion(q0, q1, q2, q3))
 end
 
-function axisAngleToRotationMatrix(rotation ::axisAnglePair)
+function toRotationMatrix(rotation ::axisAnglePair)
     n = rotation.n
     c = cos(rotation.omega)
     s = sin(rotation.omega)
@@ -174,28 +174,28 @@ function axisAngleToRotationMatrix(rotation ::axisAnglePair)
     return rotationMatrix(a)
 end
 
-function axisAngleToRodriguesFrank(rotation ::axisAnglePair)
+function toRodriguesFrank(rotation ::axisAnglePair)
     #wat als omega = pi???
     f = tan(rotation.omega/2)
     return rodriguesFrank(rotation.n*f, f)
 end
 
-function axisAngleToQuaternion(rotation ::axisAnglePair)
+function toQuaternion(rotation ::axisAnglePair)
     n = rotation.n*sin(rotation.omega/2)
     return quaternion(n[1], n[2], n[3], cos(rotation.omega/2))
 end
 
-function axisAngleToHomochoric(rotation ::axisAnglePair)
+function toHomochoric(rotation ::axisAnglePair)
     f = (3/4(rotation.omega - sin(rotation.omega)))^(1/3)
     return homochoric(rotation.n*f)
 end
 
-function rodriguesFrankToAxisAngle(rotation ::rodriguesFrank)
+function toAxisAngle(rotation ::rodriguesFrank)
     rho = abs(rotation.n)
     return axisAnglePair(rotation.n/rho, 2*arctan(rho))
 end
 
-function rodriguesFrankToHomochoric(rotation ::rodriguesFrank)
+function toHomochoric(rotation ::rodriguesFrank)
     rho = abs(rotation.rho)
     if (rho == 0)
         return homochoric([0, 0, 0])
@@ -206,7 +206,7 @@ function rodriguesFrankToHomochoric(rotation ::rodriguesFrank)
     return homochoric(rotation.n*f^(1/3))
 end
 
-function quaternionToEulerAngle(rotation ::quaternion)
+function toEulerAngle(rotation ::quaternion)
     #moet unit quaternion zijn
     q0 = rotation.angle
     q1 = rotation.i
@@ -225,7 +225,7 @@ function quaternionToEulerAngle(rotation ::quaternion)
     end
 end
 
-function quaternionToRotationMatrix(rotation ::quaternion)
+function toRotationMatrix(rotation ::quaternion)
     #moet unit quaternion zijn
     #geeft passieve interpretatie
     q0 = rotation.angle
@@ -239,7 +239,7 @@ function quaternionToRotationMatrix(rotation ::quaternion)
     return rotationMatrix(a)
 end
 
-function quaternionToAxisAngle(rotation ::quaternion)
+function toAxisAngle(rotation ::quaternion)
     q0 = rotation.angle
     q1 = rotation.i
     q2 = rotation.j
@@ -255,7 +255,7 @@ function quaternionToAxisAngle(rotation ::quaternion)
     return axisAnglePair([s*q1, s*q2, s*q3], w)
 end
 
-function quaternionToRodriguesFrank(rotation ::quaternion)
+function toRodriguesFrank(rotation ::quaternion)
     q0 = rotation.angle
     q1 = rotation.i
     q2 = rotation.j
@@ -267,7 +267,7 @@ function quaternionToRodriguesFrank(rotation ::quaternion)
     return rodriguesFrank([q1/s, q2/s, q3/s], t)
 end
 
-function quaternionToHomochoric(rotation ::quaternion)
+function toHomochoric(rotation ::quaternion)
     q0 = rotation.angle
     q1 = rotation.i
     q2 = rotation.j
@@ -282,13 +282,13 @@ function quaternionToHomochoric(rotation ::quaternion)
     return homochoric(n*f^(1/3))
 end
 
-function homochoricToAxisAngle()
+function toAxisAngle()
 end
 
-function homochoricToCubochoric()
+function toCubochoric()
 end
 
-function qubochoricToHomochoric()
+function toHomochoric()
 end
 
 function toQuaternion(rotation ::eulerAngle)
@@ -341,7 +341,7 @@ function multiply(rotation ::rotation, nr) ::rotation
     qu = toQuaternion(rotation)
     qu = multiply(qu, nr)
     rotation = toOriginal(qu)
-    #is het mogelijk om een <T subclass rotation> te doen, zodat ge 
+    #is het mogelijk om een <T subclass rotation> te doen, zodat ge
     #meteen "return toOriginal()" kunt doen, omdat het return type
     #dan hetzelfde moet zijn als het argument
     return rotation
