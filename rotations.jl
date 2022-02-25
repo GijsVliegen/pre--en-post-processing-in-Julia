@@ -37,6 +37,7 @@ end
 
 function normalize(rot ::quaternion)
     abs_val = sqrt(rot.angle^2 + rot.i^2 + rot.j^2 + rot.k^2)
+    #return multiply(rot, abs_val)
     return quaternion(rot.angle/abs_val, rot.i/abs_val, rot.j/abs_val, rot.k/abs_val)
 end
 
@@ -333,11 +334,11 @@ function toOriginal(rotation ::quaternion) ::homochoric
     return toHomochoric(rotation)
 end
 
-function multiply(rotation ::quaternion, nr) ::quaternion
-    #invullen
+function multiply(r ::quaternion, nr ::real) ::quaternion
+    return quaternion(r.angle * nr, r.i * nr, r.j * nr, r.k * nr)
 end
 
-function multiply(rotation ::rotation, nr) ::rotation
+function multiply(rotation ::rotation, nr::real) ::rotation
     qu = toQuaternion(rotation)
     qu = multiply(qu, nr)
     rotation = toOriginal(qu)
@@ -345,6 +346,23 @@ function multiply(rotation ::rotation, nr) ::rotation
     #meteen "return toOriginal()" kunt doen, omdat het return type
     #dan hetzelfde moet zijn als het argument
     return rotation
+end
+
+function multiply(f ::quaternion, s ::quaternion) ::quaternion
+    angle = f.angle*s.angle - (f.i * s.i + f.j * s.j + f.k * s.k)
+    i = (f.j * s.k - f.k * s.j) + f.angle * s.i + s.angle * f.i
+    j = (f.k * s.i - f.i * s.k) + f.angle * s.j + s.angle * f.j
+    k = (f.i * s.j - f.j * s.i) + f.angle * s.k + s.angle * f.k
+    return quaternion(i, j, k, angle)
+end
+
+#niet commutatief
+function multiply(first ::rotation, sec ::rotation) ::rotation
+    quFirst = toQuaternion(first)
+    quSec = toQuaternion(sec)
+    quResult = multiply(quFirst, quSec)
+    first = toOriginal(quResult)
+    return first
 end
 
 function add(first ::quaternion, sec ::quaternion) ::quaternion
