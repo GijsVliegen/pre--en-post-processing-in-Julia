@@ -3,6 +3,14 @@ import Base: copy
 
 P = 1
 
+struct rotation
+    #eigenlijk gewoon een quaternion
+    i
+    j
+    k
+    angle
+end
+
 struct quaternion
     i
     j
@@ -334,11 +342,11 @@ function toOriginal(rotation ::quaternion) ::homochoric
     return toHomochoric(rotation)
 end
 
-function multiply(r ::quaternion, nr ::real) ::quaternion
+function multiply(r ::quaternion, nr ::Number) ::quaternion
     return quaternion(r.angle * nr, r.i * nr, r.j * nr, r.k * nr)
 end
 
-function multiply(rotation ::rotation, nr::real) ::rotation
+function multiply(rotation ::rotation, nr::Number) ::rotation
     qu = toQuaternion(rotation)
     qu = multiply(qu, nr)
     rotation = toOriginal(qu)
@@ -376,4 +384,16 @@ function add(first ::rotation, sec ::rotation) ::rotation
     sum = add(quFirst, quSec)
     first = toOriginal(sum)
     return first
+end
+
+function from_random(n) Array{quaternion}
+    quaternions = quaternion[]
+    for i = 1:n
+        u1 = rand()
+        u2 = rand()
+        u3 = rand()
+        h = quaternion(sqrt(1-u1)*sin(2*pi*u2), sqrt(1-u1)*cos(2*pi*u2), sqrt(u1)*sin(2*pi*u3), sqrt(u1)*cos(2*pi*u3))
+        push!(quaternions, copy(h))
+    end
+    return quaternions
 end
