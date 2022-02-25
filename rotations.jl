@@ -43,28 +43,24 @@ struct homochoric
     h
 end
 
-function normalize(rot ::quaternion)
+function normalize(rot ::rotation)
     abs_val = sqrt(rot.angle^2 + rot.i^2 + rot.j^2 + rot.k^2)
     #return multiply(rot, abs_val)
-    return quaternion(rot.angle/abs_val, rot.i/abs_val, rot.j/abs_val, rot.k/abs_val)
+    return rotation(rot.angle/abs_val, rot.i/abs_val, rot.j/abs_val, rot.k/abs_val)
 end
 
-function getComponents(rot ::quaternion)
+function getComponents(rot ::rotation)
     return [rot.i, rot.j, rot.k, rot.angle]
 end
 
-function toQuaternion(rot ::quaternion)
-    return rot
-end
-
-function copy(rot ::quaternion)
-    return quaternion(rot.i, rot.j, rot.k, rot.angle)
+function copy(rot ::rotation)
+    return rotation(rot.i, rot.j, rot.k, rot.angle)
 
 end
 #in tegenstelling tot in damask wordt er niet rekening gehouden met NaN values
 #dit doen we omdat het niet is ingebouwd in isapprox()
 
-function isClose(first ::quaternion, other ::quaternion, rtol, atol, nanEquals = true)
+function isClose(first ::rotation, other ::rotation, rtol, atol, nanEquals = true)
     fcom = getComponents(toQuaternion(first))
     scom = getComponents(toQuaternion(other))
     for i in 1:4
@@ -83,7 +79,7 @@ end
 
 #voor de gebruiksvriendelijkheid kan het idee van bovenstaande code ook gebruikt worden.
 
-function toRotationMatrix(rotation ::eulerAngle)
+function eu2om(rotation ::eulerAngle)
     c1 = cos(rotation.phi1)
     s1 = sin(rotation.phi1)
     c2 = cos(rotation.phi2)
@@ -94,7 +90,7 @@ function toRotationMatrix(rotation ::eulerAngle)
     return rotationMatrix(matrix)
 end
 
-function toAxisAngle(rotation ::eulerAngle)::axisAnglePair
+function eu2ax(rotation ::eulerAngle)::axisAnglePair
     t = tan(rotation.PHI/2)
     sigma = (rotation.phi1 + rotation.phi2)/2.0
     delta = (rotation.phi1 - rotation.phi2)/2.0
@@ -106,7 +102,7 @@ function toAxisAngle(rotation ::eulerAngle)::axisAnglePair
     return axisAnglePair([P/t*cos(delta) P/t*sin(delta) P/t*sin(sigma)], a)
 end
 
-function toRodriguesFrank(rotation ::eulerAngle)
+function eu2ro(rotation ::eulerAngle)
     #EA naar AA en dan AA naar RF
 
     #nog eens nakijken
@@ -114,7 +110,7 @@ function toRodriguesFrank(rotation ::eulerAngle)
     return rodriguesFrank(axisAngle.n, tan(axisAngle.w/2))
 end
 
-function toQuaternion(rotation ::eulerAngle)
+function eu2qu(rotation ::eulerAngle)
     sigma = (rotation.phi1 + rotation.phi2)/2.0
     delta = (rotation.phi1 - rotation.phi2)/2.0
     c = cos(rotation.PHI/2)
@@ -127,13 +123,13 @@ function toQuaternion(rotation ::eulerAngle)
     end
 end
 
-function toEulerAngle(rotation ::rotationMatrix)
+function om2eu(rotation ::rotationMatrix)
     a_33 = rotation.matrix[3, 3]
     if abs(a_33) != 1
         zeta = 1/sqrt(1-a_33^2)
         phi1 = atan(rotation.matrix[3, 1]*zeta, -rotation.matrix[3, 2]*zeta)
         PHI = acos(a_33)
-        phi2 = atan(rotation.matrix[1, 3]*zeta, rotation.matrix[2, 3]*zeta)
+        phi2 = atan(rotation.mtoEulerAngleatrix[1, 3]*zeta, rotation.matrix[2, 3]*zeta)
         return eulerAngle(phi1, PHI, phi2)
     else
         phi1 = atan(rotation.matrix[1, 2], rotation.matrix[1, 1])
@@ -142,7 +138,7 @@ function toEulerAngle(rotation ::rotationMatrix)
     end
 end
 
-function toAxisAngle(rotation ::rotationMatrix)
+function om2ax(rotation ::rotationMatrix)
     omega = acos((tr(rotation.matrix) - 1)/2)
     #inspiratie voor de code: https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/index.htm
     #dit algo komt niet uit de paper, die onduidelijk was, opletten voor omega = 0 of omega = pi
@@ -152,7 +148,7 @@ function toAxisAngle(rotation ::rotationMatrix)
 
 end
 
-function toQuaternion(rotation ::rotationMatrix)
+function om2qu(rotation ::rotationMatrix)
     a = rotation.matrix
     q0 = 1/2*sqrt(1 + a[1, 1] + a[2, 2] + a[3,3])
     q1 = P/2*sqrt(1 + a[1, 1] - a[2, 2] - a[3,3])
@@ -170,7 +166,7 @@ function toQuaternion(rotation ::rotationMatrix)
     return normalize(quaternion(q0, q1, q2, q3))
 end
 
-function toRotationMatrix(rotation ::axisAnglePair)
+function ax2om(rotation ::axisAnglePair)
     n = rotation.n
     c = cos(rotation.omega)
     s = sin(rotation.omega)
@@ -183,28 +179,28 @@ function toRotationMatrix(rotation ::axisAnglePair)
     return rotationMatrix(a)
 end
 
-function toRodriguesFrank(rotation ::axisAnglePair)
+function ax2ro(rotation ::axisAnglePair)
     #wat als omega = pi???
     f = tan(rotation.omega/2)
     return rodriguesFrank(rotation.n*f, f)
 end
 
-function toQuaternion(rotation ::axisAnglePair)
+function ax2qu(rotation ::axisAnglePair)
     n = rotation.n*sin(rotation.omega/2)
     return quaternion(n[1], n[2], n[3], cos(rotation.omega/2))
 end
 
-function toHomochoric(rotation ::axisAnglePair)
+function ax2ho(rotation ::axisAnglePair)
     f = (3/4(rotation.omega - sin(rotation.omega)))^(1/3)
     return homochoric(rotation.n*f)
 end
 
-function toAxisAngle(rotation ::rodriguesFrank)
+function ro2ax(rotation ::rodriguesFrank)
     rho = abs(rotation.n)
     return axisAnglePair(rotation.n/rho, 2*arctan(rho))
 end
 
-function toHomochoric(rotation ::rodriguesFrank)
+function ro2ho(rotation ::rodriguesFrank)
     rho = abs(rotation.rho)
     if (rho == 0)
         return homochoric([0, 0, 0])
@@ -215,7 +211,7 @@ function toHomochoric(rotation ::rodriguesFrank)
     return homochoric(rotation.n*f^(1/3))
 end
 
-function toEulerAngle(rotation ::quaternion)
+function qu2eu(rotation ::quaternion)
     #moet unit quaternion zijn
     q0 = rotation.angle
     q1 = rotation.i
@@ -234,7 +230,7 @@ function toEulerAngle(rotation ::quaternion)
     end
 end
 
-function toRotationMatrix(rotation ::quaternion)
+function qu2om(rotation ::quaternion)
     #moet unit quaternion zijn
     #geeft passieve interpretatie
     q0 = rotation.angle
@@ -248,7 +244,7 @@ function toRotationMatrix(rotation ::quaternion)
     return rotationMatrix(a)
 end
 
-function toAxisAngle(rotation ::quaternion)
+function qu2ax(rotation ::quaternion)
     q0 = rotation.angle
     q1 = rotation.i
     q2 = rotation.j
@@ -264,7 +260,7 @@ function toAxisAngle(rotation ::quaternion)
     return axisAnglePair([s*q1, s*q2, s*q3], w)
 end
 
-function toRodriguesFrank(rotation ::quaternion)
+function qu2ro(rotation ::quaternion)
     q0 = rotation.angle
     q1 = rotation.i
     q2 = rotation.j
@@ -276,7 +272,7 @@ function toRodriguesFrank(rotation ::quaternion)
     return rodriguesFrank([q1/s, q2/s, q3/s], t)
 end
 
-function toHomochoric(rotation ::quaternion)
+function qu2ho(rotation ::quaternion)
     q0 = rotation.angle
     q1 = rotation.i
     q2 = rotation.j
@@ -291,109 +287,60 @@ function toHomochoric(rotation ::quaternion)
     return homochoric(n*f^(1/3))
 end
 
-function toAxisAngle()
+function ho2ax()
 end
 
-function toCubochoric()
+function ho2cu()
 end
 
-function toHomochoric()
+function cu2ho()
 end
 
-function toQuaternion(rotation ::eulerAngle)
-    return toQuaternion(rotation)
+#input: n-dimensionale array van vectoren met 4 componenten
+#als de array lengtes 5, 3 en 2 heeft. wordt dit ook op deze manier teruggegeven
+function from_quaternion(array)
+    sizes = size(array) #is een tupel, in de vorm van (4, ...)
+    flatten_array = vec(array)
+    rotations = rotation[]
+    for i in 1:4:length(flatten_array)
+        push!(rotations, rotation(flatten_array[i], flatten_array[i+1], flatten_array[i+2], flatten_array[i+3]))
+    end
+    return reshape(rotations, sizes[2:length(sizes)]) 
 end
 
-function toQuaternion(rotation ::rotationMatrix)
-    return toQuaternion(rotation)
+function apply(rotation ::rotation, vector ::Array{Number, 1})
+    result = multiply(rotation, rotation(vector[1], vector[2], vector[3], 0))
+    return [result.i, result.j, result.k]
+end
+function multiply(r ::rotation, nr ::Number) ::rotation
+    return rotation(r.angle * nr, r.i * nr, r.j * nr, r.k * nr)
 end
 
-function toQuaternion(rotation ::axisAnglePair)
-    return toQuaternion(rotation)
-end
-
-function toQuaternion(rotation ::rodriguesFrank)
-    ap = toAxisAngle(rotation)
-    return toQuaternion(ap)
-end
-
-function toQuaternion(rotation ::homochoric)
-    ap = toHomochoric(rotation)
-    return toQuaternion(ap)
-end
-
-function toOriginal(rotation ::quaternion) ::eulerAngle
-    return toEulerAngle(rotation)
-end
-
-function toOriginal(rotation ::quaternion) ::axisAnglePair
-    return toAxisAngle(rotation)
-end
-
-function toOriginal(rotation ::quaternion) ::rotationMatrix
-    return toRotationMatrix(rotation)
-end
-
-function toOriginal(rotation ::quaternion) ::rodriguesFrank
-    return toRodriguesFrank(rotation)
-end
-
-function toOriginal(rotation ::quaternion) ::homochoric
-    return toHomochoric(rotation)
-end
-
-function multiply(r ::quaternion, nr ::Number) ::quaternion
-    return quaternion(r.angle * nr, r.i * nr, r.j * nr, r.k * nr)
-end
-
-function multiply(rotation ::rotation, nr::Number) ::rotation
-    qu = toQuaternion(rotation)
-    qu = multiply(qu, nr)
-    rotation = toOriginal(qu)
-    #is het mogelijk om een <T subclass rotation> te doen, zodat ge
-    #meteen "return toOriginal()" kunt doen, omdat het return type
-    #dan hetzelfde moet zijn als het argument
-    return rotation
-end
-
-function multiply(f ::quaternion, s ::quaternion) ::quaternion
+#niet commutatief
+function multiply(f ::rotation, s ::rotation) ::rotation
     angle = f.angle*s.angle - (f.i * s.i + f.j * s.j + f.k * s.k)
     i = (f.j * s.k - f.k * s.j) + f.angle * s.i + s.angle * f.i
     j = (f.k * s.i - f.i * s.k) + f.angle * s.j + s.angle * f.j
     k = (f.i * s.j - f.j * s.i) + f.angle * s.k + s.angle * f.k
-    return quaternion(i, j, k, angle)
+    return rotation(i, j, k, angle)
 end
 
-#niet commutatief
-function multiply(first ::rotation, sec ::rotation) ::rotation
-    quFirst = toQuaternion(first)
-    quSec = toQuaternion(sec)
-    quResult = multiply(quFirst, quSec)
-    first = toOriginal(quResult)
-    return first
-end
-
-function add(first ::quaternion, sec ::quaternion) ::quaternion
-    #invullen
-end
-
-#return rotatie type van first argument
-function add(first ::rotation, sec ::rotation) ::rotation
-    quFirst = toQuaternion(first)
-    quSec = toQuaternion(sec)
-    sum = add(quFirst, quSec)
-    first = toOriginal(sum)
-    return first
-end
-
-function from_random(n) Array{quaternion}
-    quaternions = quaternion[]
+#input: aantal random rotaties, en dimensies van array
+function from_random(n, sizes = n) ::Array{rotation}
+    total = 1
+    for i in sizes
+        total *= i
+    end
+    if (n != total)
+        print("invalid dimensions")
+    end
+    rotations = rotation[]
     for i = 1:n
         u1 = rand()
         u2 = rand()
         u3 = rand()
-        h = quaternion(sqrt(1-u1)*sin(2*pi*u2), sqrt(1-u1)*cos(2*pi*u2), sqrt(u1)*sin(2*pi*u3), sqrt(u1)*cos(2*pi*u3))
-        push!(quaternions, copy(h))
+        h = rotation(sqrt(1-u1)*sin(2*pi*u2), sqrt(1-u1)*cos(2*pi*u2), sqrt(u1)*sin(2*pi*u3), sqrt(u1)*cos(2*pi*u3))
+        push!(rotations, copy(h))
     end
-    return quaternions
+    return reshape(rotations, sizes)
 end
