@@ -305,13 +305,45 @@ function from_quaternion(array)
     for i in 1:4:length(flatten_array)
         push!(rotations, rotation(flatten_array[i], flatten_array[i+1], flatten_array[i+2], flatten_array[i+3]))
     end
-    return reshape(rotations, sizes[2:length(sizes)]) 
+    return reshape(rotations, sizes[2:length(sizes)])
+end
+
+function from_eulerAngle(array)
+    sizes = size(array)
+    flatten_array = vec(array)
+    rotations = rotation[]
+    for i in 1:3:length(flatten_array)
+        q = eu2qu(eulerAngle(flatten_array[i],flatten_array[i+1],flatten_array[i+2]))
+        push!(rotations, q.i, q.j, q.k, q.angle)
+    end
+    return reshape(rotations, sizes[2:length(sizes)])
+end
+
+function from_axisAngle(array)
+    sizes = size(array)
+    flatten_array = vec(array)
+    rotations = rotation[]
+    for i in 1:4:length(flatten_array)
+        q = ax2qu(axisAngle(flatten_array[i],flatten_array[i+1],flatten_array[i+2],flatten_array[i+3]))
+        push!(rotations, q.i, q.j, q.k, q.angle)
+    end
+    return reshape(rotations, sizes[2:length(sizes)])
+end
+
+function from_RodriguesFrank(array)
+end
+
+function from_homochoric(array)
+end
+
+function from_cubochoric(array)
 end
 
 function apply(rotation ::rotation, vector ::Array{Number, 1})
     result = multiply(rotation, rotation(vector[1], vector[2], vector[3], 0))
     return [result.i, result.j, result.k]
 end
+
 function multiply(r ::rotation, nr ::Number) ::rotation
     return rotation(r.angle * nr, r.i * nr, r.j * nr, r.k * nr)
 end
