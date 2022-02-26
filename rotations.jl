@@ -3,6 +3,12 @@ import Base: copy
 
 P = 1
 
+#om documentatie te schrijven
+#https://julia-doc.readthedocs.io/en/latest/manual/documentation/
+
+#python damask documentatie
+#https://damask.mpie.de/documentation/processing_tools/pre-processing.html#damask.Rotation.from_quaternion
+
 struct rotation
     #eigenlijk gewoon een quaternion
     i
@@ -110,16 +116,17 @@ function eu2ro(rotation ::eulerAngle)
     return rodriguesFrank(axisAngle.n, tan(axisAngle.w/2))
 end
 
-function eu2qu(rotation ::eulerAngle)
-    sigma = (rotation.phi1 + rotation.phi2)/2.0
-    delta = (rotation.phi1 - rotation.phi2)/2.0
-    c = cos(rotation.PHI/2)
-    s = sin(rotation.PHI/2)
+#Euler angle heeft ZXZ structuur
+function eu2qu(phi1, PHI, phi2) ::rotation
+    sigma = (phi1 + phi2)/2.0
+    delta = (phi1 - phi2)/2.0
+    c = cos(PHI/2)
+    s = sin(PHI/2)
     q0 = c*cos(sigma)
     if q0 < 0
-        return quaternion(P*s*cos(delta), P*s*sin(delta), P*c*sin(sigma), q0)
+        return rotation(P*s*cos(delta), P*s*sin(delta), P*c*sin(sigma), q0)
     else
-        return quaternion(-P*s*cos(delta), -P*s*sin(delta), -P*c*sin(sigma), q0)
+        return rotation(-P*s*cos(delta), -P*s*sin(delta), -P*c*sin(sigma), q0)
     end
 end
 
@@ -185,9 +192,10 @@ function ax2ro(rotation ::axisAnglePair)
     return rodriguesFrank(rotation.n*f, f)
 end
 
-function ax2qu(rotation ::axisAnglePair)
-    n = rotation.n*sin(rotation.omega/2)
-    return quaternion(n[1], n[2], n[3], cos(rotation.omega/2))
+function ax2qu(n1, n2, n3, omega) ::rotation
+    n = [n1, n2, n3]
+    n = rotation.n*sin(omega/2)
+    return rotation(n[1], n[2], n[3], cos(omega/2))
 end
 
 function ax2ho(rotation ::axisAnglePair)
@@ -296,36 +304,146 @@ end
 function cu2ho()
 end
 
-#input: n-dimensionale array van vectoren met 4 componenten
-#als de array lengtes 5, 3 en 2 heeft. wordt dit ook op deze manier teruggegeven
-function from_quaternion(array)
+
+#moeten deze in positive real hemisphere zijn? en wat is dan de logica hierachter?
+#voorlopig wordt er nergens gecheckt of het unit quaternionen zijn
+#misschien hiervoor een voorwaarde schrijven in de struct zelf?
+
+#in de python damask is het shape (..., 4), wij doen (4,...), zou dit veel uitmaken?
+"""
+    from_quaternion(array) ::Array{rotation}
+
+Initialize from quaternion.
+
+# Arguments
+   - `array ::Array`: shape (4, ...)
+
+        Unit quaternion (q0, q1, q2, q3) in positive real hemisphere, i.e. ǀqǀ = 1, q_0 ≥ 0.
+
+# Examples
+```julia-repl
+julia> from_quaternion(reshape([(1:16)...], 4, 2, 2))
+2×2 Array{rotation,2}:
+ rotation(1, 2, 3, 4)  rotation(9, 10, 11, 12)
+ rotation(5, 6, 7, 8)  rotation(13, 14, 15, 16)
+```
+"""
+function from_quaternion(array) ::Array{rotation}
     sizes = size(array) #is een tupel, in de vorm van (4, ...)
     flatten_array = vec(array)
     rotations = rotation[]
     for i in 1:4:length(flatten_array)
         push!(rotations, rotation(flatten_array[i], flatten_array[i+1], flatten_array[i+2], flatten_array[i+3]))
     end
-    return reshape(rotations, sizes[2:length(sizes)])
+    return reshape(rotations, sizes[2:length(sizes)]) 
 end
 
-function from_eulerAngle(array)
+#deze voorwaarden worden opnieuw nergens gechecked, misschien dit checken in de functie eu2qu?
+"""
+    from_eulerAngle(array, degrees = false) ::Array{rotation}
+
+Initialize from Bungle Euler angles.
+
+# Arguments
+   - `array ::Array`: shape (3, ...)
+
+        Euler angles (φ1 ∈ [0,2π], ϕ ∈ [0,π], φ2 ∈ [0,2π]) or (φ1 ∈ [0,360], ϕ ∈ [0,180], φ2 ∈ [0,360]) if degrees == True.
+
+   - `degrees ::bool`, optional
+
+        Euler angles are given in degrees. Defaults to False.
+"""
+function from_Euler_angles(array, degrees = false)
     sizes = size(array)
     flatten_array = vec(array)
     rotations = rotation[]
+    if degrees
+        flatten_array = flatten_array/(2*pi)
+    end
     for i in 1:3:length(flatten_array)
-        q = eu2qu(eulerAngle(flatten_array[i],flatten_array[i+1],flatten_array[i+2]))
-        push!(rotations, q.i, q.j, q.k, q.angle)
+        q = eu2qu(flatten_array[i],flatten_array[i+1],flatten_array[i+2])
+        push!(rotations, q)
     end
     return reshape(rotations, sizes[2:length(sizes)])
 end
 
-function from_axisAngle(array)
+
+
+#deze voorwaarden worden opnieuw nergens gechecked, misschien dit checken in de functie ax2qu?
+"""
+    from_axisAngle(array, degrees = false) ::Array{rotation}
+
+Initialize from Axis angle pair.
+
+# Arguments
+   - `array ::Array`: shape (4, ...)
+
+        Axis and angle (n_1, n_2, n_3, ω) with ǀnǀ = 1 and ω ∈ [0,π] or ω ∈ [0,180] if degrees == True.
+
+   - `degrees ::bool`, optional
+
+        Euler angles are given in degrees. Defaults to False.
+"""
+function from_axis_angle(array, degrees = false)
     sizes = size(array)
     flatten_array = vec(array)
     rotations = rotation[]
+    if degrees
+        flatten_array = flatten_array/(2*pi)
+    end
     for i in 1:4:length(flatten_array)
-        q = ax2qu(axisAngle(flatten_array[i],flatten_array[i+1],flatten_array[i+2],flatten_array[i+3]))
-        push!(rotations, q.i, q.j, q.k, q.angle)
+        q = ax2qu(flatten_array[i],flatten_array[i+1],flatten_array[i+2],flatten_array[i+3])
+        push!(rotations, q)
+    end
+    return reshape(rotations, sizes[2:length(sizes)])
+end
+
+#deze voorwaarden worden nergens gechecked, misschien dit checken in de functie om2qu?
+"""
+    from_basis(array, degrees = false) ::Array{rotation}
+
+Initialize from lattice basis vectors.
+
+# Arguments
+   - `array ::Array`: shape (3, 3, ...)
+
+        Three three-dimensional lattice basis vectors.
+
+   - `orthonormal ::bool`, optional
+
+        Basis is strictly orthonormal, i.e. is free of stretch components. Defaults to True.
+
+   - `reciprocal ::bool`, optional
+
+        Basis vectors are given in reciprocal (instead of real) space. Defaults to False.
+"""
+function from_basis(array, orthonormal = true, reciprocal = false)
+end
+
+
+#deze voorwaarden worden nergens gechecked, misschien dit checken in de functie om2qu?
+"""
+    from_basis(array, degrees = false) ::Array{rotation}
+
+Initialize from rotation matrix.
+
+# Arguments
+   - `array ::Array`: shape (3, 3, ...)
+
+        Rotation matrix with det(R) = 1, R.T ∙ R = I.
+"""
+function from_matrix(array)
+    sizes = size(array)
+    flatten_array = vec(array)
+    rotations = rotation[]
+    if degrees
+        flatten_array = flatten_array/(2*pi)
+    end
+    for i in 1:9:length(flatten_array)
+        #zou deze reshape veel tijd in beslag nemen? anders gewoon een om2qu maken die op een vector werkt?
+        #of zou ge kunnen flattenen naar een 2dimensionale array ipv naar een vector
+        q = om2qu(reshape(flatten_array[i:i+9], (3, 3)))
+        push!(rotations, q)
     end
     return reshape(rotations, sizes[2:length(sizes)])
 end
@@ -357,7 +475,11 @@ function multiply(f ::rotation, s ::rotation) ::rotation
     return rotation(i, j, k, angle)
 end
 
-#input: aantal random rotaties, en dimensies van array
+""" 
+    from_random(n, sizes = n) ::Array{rotation}
+
+Construeert een array van random rotaties, met gegeven dimensies
+"""
 function from_random(n, sizes = n) ::Array{rotation}
     total = 1
     for i in sizes
