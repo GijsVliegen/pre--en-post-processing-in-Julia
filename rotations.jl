@@ -330,12 +330,12 @@ julia> from_quaternion(reshape([(1:16)...], 4, 2, 2))
 """
 function from_quaternion(array) ::Array{rotation}
     sizes = size(array) #is een tupel, in de vorm van (4, ...)
-    flatten_array = vec(array)
+    flat_array = vec(array)
     rotations = rotation[]
-    for i in 1:4:length(flatten_array)
-        push!(rotations, rotation(flatten_array[i], flatten_array[i+1], flatten_array[i+2], flatten_array[i+3]))
+    for i in 1:4:length(flat_array)
+        push!(rotations, rotation(flat_array[i], flat_array[i+1], flat_array[i+2], flat_array[i+3]))
     end
-    return reshape(rotations, sizes[2:length(sizes)]) 
+    return reshape(rotations, sizes[2:length(sizes)])
 end
 
 #deze voorwaarden worden opnieuw nergens gechecked, misschien dit checken in de functie eu2qu?
@@ -355,13 +355,13 @@ Initialize from Bungle Euler angles.
 """
 function from_Euler_angles(array, degrees = false)
     sizes = size(array)
-    flatten_array = vec(array)
+    flat_array = vec(array)
     rotations = rotation[]
     if degrees
-        flatten_array = flatten_array/(2*pi)
+        flat_array = flat_array/(2*pi)
     end
-    for i in 1:3:length(flatten_array)
-        q = eu2qu(flatten_array[i],flatten_array[i+1],flatten_array[i+2])
+    for i in 1:3:length(flat_array)
+        q = eu2qu(flat_array[i],flat_array[i+1],flat_array[i+2])
         push!(rotations, q)
     end
     return reshape(rotations, sizes[2:length(sizes)])
@@ -386,13 +386,13 @@ Initialize from Axis angle pair.
 """
 function from_axis_angle(array, degrees = false)
     sizes = size(array)
-    flatten_array = vec(array)
+    flat_array = vec(array)
     rotations = rotation[]
     if degrees
-        flatten_array = flatten_array/(2*pi)
+        flat_array = flat_array/(2*pi)
     end
-    for i in 1:4:length(flatten_array)
-        q = ax2qu(flatten_array[i],flatten_array[i+1],flatten_array[i+2],flatten_array[i+3])
+    for i in 1:4:length(flat_array)
+        q = ax2qu(flat_array[i],flat_array[i+1],flat_array[i+2],flat_array[i+3])
         push!(rotations, q)
     end
     return reshape(rotations, sizes[2:length(sizes)])
@@ -434,26 +434,43 @@ Initialize from rotation matrix.
 """
 function from_matrix(array)
     sizes = size(array)
-    flatten_array = vec(array)
+    flat_array = vec(array)
     rotations = rotation[]
     if degrees
-        flatten_array = flatten_array/(2*pi)
+        flat_array = flat_array/(2*pi)
     end
-    for i in 1:9:length(flatten_array)
+    for i in 1:9:length(flat_array)
         #zou deze reshape veel tijd in beslag nemen? anders gewoon een om2qu maken die op een vector werkt?
         #of zou ge kunnen flattenen naar een 2dimensionale array ipv naar een vector
-        q = om2qu(reshape(flatten_array[i:i+9], (3, 3)))
+        q = om2qu(reshape(flat_array[i:i+9], (3, 3)))
         push!(rotations, q)
     end
     return reshape(rotations, sizes[2:length(sizes)])
 end
 
 function from_RodriguesFrank(array)
+    sizes = size(array)
+    flat_array = vec(array)
+    rotations = rotation[]
+    for i in 1:4:length(flat_array)
+        q = ro2qu(flat_array[i],flat_array[i+1],flat_array[i+2], flat_array[i+3])
+        push!(rotations, q)
+    end
+    return reshape(rotations, sizes[2:length(sizes)])
 end
 
 function from_homochoric(array)
+    sizes = size(array)
+    flat_array = vec(array)
+    rotations = rotation[]
+    for i in 1:3:length(flat_array)
+        q = ho2qu(flat_array[i],flat_array[i+1],flat_array[i+2])
+        push!(rotations, q)
+    end
+    return reshape(rotations, sizes[2:length(sizes)])
 end
 
+# misschien voor later
 function from_cubochoric(array)
 end
 
@@ -475,7 +492,7 @@ function multiply(f ::rotation, s ::rotation) ::rotation
     return rotation(i, j, k, angle)
 end
 
-""" 
+"""
     from_random(n, sizes = n) ::Array{rotation}
 
 Construeert een array van random rotaties, met gegeven dimensies
