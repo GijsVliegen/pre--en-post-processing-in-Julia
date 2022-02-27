@@ -475,7 +475,8 @@ function from_cubochoric(array)
 end
 
 function apply(rotation ::rotation, vector ::Array{Number, 1})
-    result = multiply(rotation, rotation(vector[1], vector[2], vector[3], 0))
+    qvector = rotation(vector[1], vector[2], vector[3], 0)
+    result = multiply(multiply(rotation, qvector), inv(rotation))
     return [result.i, result.j, result.k]
 end
 
@@ -490,6 +491,10 @@ function multiply(f ::rotation, s ::rotation) ::rotation
     j = (f.k * s.i - f.i * s.k) + f.angle * s.j + s.angle * f.j
     k = (f.i * s.j - f.j * s.i) + f.angle * s.k + s.angle * f.k
     return rotation(i, j, k, angle)
+end
+
+function inv(rotation ::rotation)
+    return rotation(-rotation.i, -rotation.j, -rotation.k, rotation.angle)
 end
 
 """
