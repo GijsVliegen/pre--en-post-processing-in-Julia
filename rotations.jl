@@ -11,10 +11,10 @@ P = 1
 
 struct rotation
     #eigenlijk gewoon een quaternion
+    angle
     i
     j
     k
-    angle
 end
 
 struct quaternion
@@ -52,15 +52,15 @@ end
 function normalize(rot ::rotation)
     abs_val = sqrt(rot.angle^2 + rot.i^2 + rot.j^2 + rot.k^2)
     #return multiply(rot, abs_val)
-    return rotation(rot.angle/abs_val, rot.i/abs_val, rot.j/abs_val, rot.k/abs_val)
+    return rotation(rot.i/abs_val, rot.j/abs_val, rot.k/abs_val, rot.angle/abs_val)
 end
 
 function getComponents(rot ::rotation)
-    return [rot.i, rot.j, rot.k, rot.angle]
+    return [rot.angle, rot.i, rot.j, rot.k]
 end
 
 function copy(rot ::rotation)
-    return rotation(rot.i, rot.j, rot.k, rot.angle)
+    return rotation(rot.angle, rot.i, rot.j, rot.k)
 
 end
 #in tegenstelling tot in damask wordt er niet rekening gehouden met NaN values
@@ -124,9 +124,9 @@ function eu2qu(phi1, PHI, phi2) ::rotation
     s = sin(PHI/2)
     q0 = c*cos(sigma)
     if q0 < 0
-        return rotation(P*s*cos(delta), P*s*sin(delta), P*c*sin(sigma), q0)
+        return rotation(q0, P*s*cos(delta), P*s*sin(delta), P*c*sin(sigma))
     else
-        return rotation(-P*s*cos(delta), -P*s*sin(delta), -P*c*sin(sigma), q0)
+        return rotation(q0, -P*s*cos(delta), -P*s*sin(delta), -P*c*sin(sigma))
     end
 end
 
@@ -136,7 +136,7 @@ function om2eu(rotation ::rotationMatrix)
         zeta = 1/sqrt(1-a_33^2)
         phi1 = atan(rotation.matrix[3, 1]*zeta, -rotation.matrix[3, 2]*zeta)
         PHI = acos(a_33)
-        phi2 = atan(rotation.mtoEulerAngleatrix[1, 3]*zeta, rotation.matrix[2, 3]*zeta)
+        phi2 = atan(rotation.matrix[1, 3]*zeta, rotation.matrix[2, 3]*zeta)
         return eulerAngle(phi1, PHI, phi2)
     else
         phi1 = atan(rotation.matrix[1, 2], rotation.matrix[1, 1])
@@ -170,7 +170,7 @@ function om2qu(rotation ::rotationMatrix)
     if (a[2, 1] < a[1, 2])
         q3 = -q3
     end
-    return normalize(quaternion(q0, q1, q2, q3))
+    return normalize(rotation(q0, q1, q2, q3))
 end
 
 function ax2om(rotation ::axisAnglePair)
@@ -192,10 +192,10 @@ function ax2ro(rotation ::axisAnglePair)
     return rodriguesFrank(rotation.n*f, f)
 end
 
-function ax2qu(n1, n2, n3, omega) ::rotation
-    n = [n1, n2, n3]
-    n = rotation.n*sin(omega/2)
-    return rotation(n[1], n[2], n[3], cos(omega/2))
+function ax2qu(rotation ::axisAnglePair) ::rotation
+    n = copy(rotation.n)
+    n = rotation.n*sin(rotation.omega/2)
+    return rotation(cos(rotation.omega/2), n[1], n[2], n[3])
 end
 
 function ax2ho(rotation ::axisAnglePair)
@@ -490,11 +490,11 @@ function multiply(f ::rotation, s ::rotation) ::rotation
     i = (f.j * s.k - f.k * s.j) + f.angle * s.i + s.angle * f.i
     j = (f.k * s.i - f.i * s.k) + f.angle * s.j + s.angle * f.j
     k = (f.i * s.j - f.j * s.i) + f.angle * s.k + s.angle * f.k
-    return rotation(i, j, k, angle)
+    return rotation(angle, i, j, k)
 end
 
 function inv(rotation ::rotation)
-    return rotation(-rotation.i, -rotation.j, -rotation.k, rotation.angle)
+    return rotation(rotation.angle, -rotation.i, -rotation.j, -rotation.k)
 end
 
 """
