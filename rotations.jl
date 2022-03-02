@@ -17,38 +17,6 @@ struct rotation
     k
 end
 
-struct quaternion
-    i
-    j
-    k
-    angle
-end
-
-struct eulerAngle
-    #ZXZ structuur
-    phi1
-    PHI
-    phi2
-end
-
-struct rotationMatrix
-    matrix# ::Array{Int64, 2}(undef, 2, 2)
-end
-
-struct axisAnglePair
-    n
-    omega
-end
-
-struct rodriguesFrank
-    n
-    f
-end
-
-struct homochoric
-    h
-end
-
 function normalize(rot ::rotation)
     abs_val = sqrt(rot.angle^2 + rot.i^2 + rot.j^2 + rot.k^2)
     #return multiply(rot, abs_val)
@@ -67,8 +35,8 @@ end
 #dit doen we omdat het niet is ingebouwd in isapprox()
 
 function isClose(first ::rotation, other ::rotation, rtol, atol, nanEquals = true)
-    fcom = getComponents(toQuaternion(first))
-    scom = getComponents(toQuaternion(other))
+    fcom = getComponents(first)
+    scom = getComponents(other)
     for i in 1:4
         if !isapprox(fcom[i], scom[i], rtol = rtol , atol = atol, nans = nanEquals)
             return false
@@ -82,39 +50,7 @@ end
 #volgens de tabel pagina 11 van de paper "Consistent representations of and conversions
 #between 3D rotations"
 
-
 #voor de gebruiksvriendelijkheid kan het idee van bovenstaande code ook gebruikt worden.
-
-function eu2om(rotation ::eulerAngle)
-    c1 = cos(rotation.phi1)
-    s1 = sin(rotation.phi1)
-    c2 = cos(rotation.phi2)
-    s2 = sin(rotation.phi2)
-    C = cos(rotation.PHI)
-    S = sin(rotation.PHI)
-    matrix = [c1*c2-s1*C*s2 s1*c2+c1*C*s2 S*s2; -c1*s2-s1*C*c2 -s1*s2+c1*C*c2 S*c2; s1*S -c1*S C]
-    return rotationMatrix(matrix)
-end
-
-function eu2ax(rotation ::eulerAngle)::axisAnglePair
-    t = tan(rotation.PHI/2)
-    sigma = (rotation.phi1 + rotation.phi2)/2.0
-    delta = (rotation.phi1 - rotation.phi2)/2.0
-    tau = sqrt(t^2 + sin(sigma)^2)
-    alpha = 2*atan(tau/(cos(sigma)))
-    if (alpha > pi)
-        alpha = 2*pi - alpha
-    end
-    return axisAnglePair([P/t*cos(delta) P/t*sin(delta) P/t*sin(sigma)], a)
-end
-
-function eu2ro(rotation ::eulerAngle)
-    #EA naar AA en dan AA naar RF
-
-    #nog eens nakijken
-    axisAngle = toAxisAngle(rotation)
-    return rodriguesFrank(axisAngle.n, tan(axisAngle.w/2))
-end
 
 #Euler angle heeft ZXZ structuur
 function eu2qu(phi1, PHI, phi2) ::rotation
@@ -130,33 +66,8 @@ function eu2qu(phi1, PHI, phi2) ::rotation
     end
 end
 
-function om2eu(rotation ::rotationMatrix)
-    a_33 = rotation.matrix[3, 3]
-    if abs(a_33) != 1
-        zeta = 1/sqrt(1-a_33^2)
-        phi1 = atan(rotation.matrix[3, 1]*zeta, -rotation.matrix[3, 2]*zeta)
-        PHI = acos(a_33)
-        phi2 = atan(rotation.matrix[1, 3]*zeta, rotation.matrix[2, 3]*zeta)
-        return eulerAngle(phi1, PHI, phi2)
-    else
-        phi1 = atan(rotation.matrix[1, 2], rotation.matrix[1, 1])
-        PHI = pi/2*(1 - a_33)
-        return eulerAngle(phi1, PHI, 0)
-    end
-end
-
-function om2ax(rotation ::rotationMatrix)
-    omega = acos((tr(rotation.matrix) - 1)/2)
-    #inspiratie voor de code: https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/index.htm
-    #dit algo komt niet uit de paper, die onduidelijk was, opletten voor omega = 0 of omega = pi
-    #omega = 0 -> x y en z zijn arbitrair
-    #omega = pi -> x y en z maken uit dus moeten berekend worden
-    #handelen van singularities: https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/david.htm
-
-end
-
-function om2qu(rotation ::rotationMatrix)
-    a = rotation.matrix
+function om2qu(rot) ::rotation
+    a = rot.matrix
     q0 = 1/2*sqrt(1 + a[1, 1] + a[2, 2] + a[3,3])
     q1 = P/2*sqrt(1 + a[1, 1] - a[2, 2] - a[3,3])
     q2 = P/2*sqrt(1 - a[1, 1] + a[2, 2] - a[3,3])
@@ -173,53 +84,51 @@ function om2qu(rotation ::rotationMatrix)
     return normalize(rotation(q0, q1, q2, q3))
 end
 
-function ax2om(rotation ::axisAnglePair)
-    n = rotation.n
-    c = cos(rotation.omega)
-    s = sin(rotation.omega)
-    a = [c+(1-c)*n[1]^2 (1-c)*n[1]*n[2]+s*n[3] (1-c)*n[1]*n[3]-s*n[2];
-    (1-c)*n[1]*n[2]-s*n[3] c+(1-c)*n[2]^2 (1-c)*n[2]*n[3]+s*n[1];
-    (1-c)*n[1]*n[3]+s*n[2] (1-c)*n[2]*n[3]-sn[1] c+(1-c)*n[3]^2]
-    if (P == 1)
-        a = transpose(a)
+#input = [n_0, n_1, n_2, w]
+function ax2qu(rot) ::rotation
+    n = rot[1:3]
+    n = n*sin(rot[4]/2)
+    return rotation(cos(rot[4]/2), n[1], n[2], n[3])
+end
+
+#input = [n_0, n_1, n_2, tan(ω/2)]
+function ro2ax(rotation)
+    n = rotation[1:3]
+    rho = norm(n)
+    return vcat(n/rho, [2*arctan(rho)])
+end
+
+function ro2qu(rotation) ::rotation
+    ax = ro2ax(rotation)
+    return ax2qu(ax)
+end
+
+gamma = [1.0000000000018805, -0.500000000219485, -0.024999992127593, -0.003928701544781,
+    -0.000815270153545, -0.000200950042612, -0.000023979867761, -0.000082028689266,
+    0.000124487150421, -0.000174911421482, 0.000170348193414, -0.000120620650041,
+    0.000059719705869, -0.000019807567240, 0.000003953714684, -0.000000365550014]
+#[n_0, n_1, n_2]
+function ho2ax(rotation)
+    small_h = norm(rotation)
+    small_h_squared = small_h^2
+    if small_h == 0
+        return [0, 0, 1, 0]
     end
-    return rotationMatrix(a)
-end
-
-function ax2ro(rotation ::axisAnglePair)
-    #wat als omega = pi???
-    f = tan(rotation.omega/2)
-    return rodriguesFrank(rotation.n*f, f)
-end
-
-function ax2qu(rotation ::axisAnglePair) ::rotation
-    n = copy(rotation.n)
-    n = rotation.n*sin(rotation.omega/2)
-    return rotation(cos(rotation.omega/2), n[1], n[2], n[3])
-end
-
-function ax2ho(rotation ::axisAnglePair)
-    f = (3/4(rotation.omega - sin(rotation.omega)))^(1/3)
-    return homochoric(rotation.n*f)
-end
-
-function ro2ax(rotation ::rodriguesFrank)
-    rho = abs(rotation.n)
-    return axisAnglePair(rotation.n/rho, 2*arctan(rho))
-end
-
-function ro2ho(rotation ::rodriguesFrank)
-    rho = abs(rotation.rho)
-    if (rho == 0)
-        return homochoric([0, 0, 0])
+    h_prime = rotation/small_h
+    s = 0
+    for i in 1:16
+        s += gamma[i]*small_h_squared^(i-1)
     end
-    #is het nodig om rho == oneindig te behandelen
-    w = 2*atan(rho)
-    f = 3(w - sin(w))/4
-    return homochoric(rotation.n*f^(1/3))
+    return vcat(h_prime, [2*acos(s)])
 end
 
-function qu2eu(rotation ::quaternion)
+function ho2qu(rotation) ::rotation
+    ax = ho2ax(rotation)
+    qu = ax2qu(ax) #als ik het niet in een aparte waarde opsla, komt er een error lol
+    return qu
+end
+
+function qu2eu(rotation ::rotation)
     #moet unit quaternion zijn
     q0 = rotation.angle
     q1 = rotation.i
@@ -229,16 +138,16 @@ function qu2eu(rotation ::quaternion)
     q12 = q1^2 + q2^2
     x = sqrt(q03 * q12)
     if (x == 0 && q12 == 0)
-        return eulerAngle(atan(-2*P*q0*q3, q0^2 - q3^2), 0, 0)
+        return [(atan(-2*P*q0*q3, q0^2 - q3^2), 0, 0)]
     elseif (x == 0 && q03 == 0)
-        return eulerAngle(atan(2*q1*q2, q1^2 - q2^2), pi, 0)
+        return [(atan(2*q1*q2, q1^2 - q2^2), pi, 0)]
     else #als x != 0
-        return eulerAngle(atan((q1*q3 - P*q0*q2)/x,(-P*q0*q1 - q2*q3)/x),
-            atan(2*x, q03-q12), atan((P*q0*q2 + q1*q3)/x, (q2*q3 - P*q0*q1)/x))
+        return [(atan((q1*q3 - P*q0*q2)/x,(-P*q0*q1 - q2*q3)/x),
+            atan(2*x, q03-q12), atan((P*q0*q2 + q1*q3)/x, (q2*q3 - P*q0*q1)/x))]
     end
 end
 
-function qu2om(rotation ::quaternion)
+function qu2om(rotation ::rotation)
     #moet unit quaternion zijn
     #geeft passieve interpretatie
     q0 = rotation.angle
@@ -249,26 +158,27 @@ function qu2om(rotation ::quaternion)
     a = [q+2*q1^2 2*(q1*q2-P*q0*q3) 2*(q1*q3+P*q0*q2);
         2(q1*q2+P*q0*q3) q+2*q2^2 2*(q2*q3-P*q0*q1);
         2*(q1*q3-P*q0*q2) 2*(q2*q3+P*q0*q1) q+2*q3^2]
-    return rotationMatrix(a)
+    return a
 end
 
-function qu2ax(rotation ::quaternion)
+function qu2ax(rotation ::rotation)
     q0 = rotation.angle
     q1 = rotation.i
     q2 = rotation.j
     q3 = rotation.k
     w = 2*acos(q0)
     if (w == 0)
-        return axisAnglePair([0, 0, 1], 0)
+        #[n_0, n_1, n_2, w]
+        return [0, 0, 1, 0]
     end
     if (q0 == 0)
-        return axisAnglePair([q1, q2, q3], pi)
+        return [q1, q2, q3, pi]
     end
     s = sign(q0)/sqrt(q1^2 + q2^2 + q3^2)
-    return axisAnglePair([s*q1, s*q2, s*q3], w)
+    return [s*q1, s*q2, s*q3, w]
 end
 
-function qu2ro(rotation ::quaternion)
+function qu2ro(rotation ::rotation)
     q0 = rotation.angle
     q1 = rotation.i
     q2 = rotation.j
@@ -277,33 +187,24 @@ function qu2ro(rotation ::quaternion)
     t = tan(acos(q0))
     #oppassen als s klein wordt!!!
     #rodriguesFrank opslaan als vector van 4 elementen
-    return rodriguesFrank([q1/s, q2/s, q3/s], t)
+    #[n_0, n_1, n_2, t]
+    return [q1/s, q2/s, q3/s, t]
 end
 
-function qu2ho(rotation ::quaternion)
+function qu2ho(rotation ::rotation)
     q0 = rotation.angle
     q1 = rotation.i
     q2 = rotation.j
     q3 = rotation.k
     w = 2*acos(q0)
     if w == 0
-        return homochoric([0, 0, 0])
+        return [0, 0, 0]
     end
     s = 1/sqrt(q1^2 + q2^2 + q3^2)
     n = [s*q1, s*q2, s*q3]
     f = 3(w-sin(w))/4
-    return homochoric(n*f^(1/3))
+    return n*f^(1/3)
 end
-
-function ho2ax()
-end
-
-function ho2cu()
-end
-
-function cu2ho()
-end
-
 
 #moeten deze in positive real hemisphere zijn? en wat is dan de logica hierachter?
 #voorlopig wordt er nergens gecheckt of het unit quaternionen zijn
@@ -520,3 +421,117 @@ function from_random(n, sizes = n) ::Array{rotation}
     end
     return reshape(rotations, sizes)
 end
+
+#in de python-versie is dit iets anders, nu is return als volgt
+# return: n-dimensionale array van 3x3 matrices
+# bij python: return: n-dimensionale array
+function as_matrix(rotations ::Array{rotation})
+    sizes = size(rotations)
+    flat_array = vec(rotations)
+    rotationmatrices = Array{Int, 2}[]
+    for i in 1:length(flat_array)
+        om = qu2om(flat_array[i])
+        push!(rotationmatrices, om)
+    end
+    return reshape(rotationmatrices, sizes)
+end
+
+
+"""
+function eu2om(rotation ::eulerAngle)
+    c1 = cos(rotation.phi1)
+    s1 = sin(rotation.phi1)
+    c2 = cos(rotation.phi2)
+    s2 = sin(rotation.phi2)
+    C = cos(rotation.PHI)
+    S = sin(rotation.PHI)
+    matrix = [c1*c2-s1*C*s2 s1*c2+c1*C*s2 S*s2; -c1*s2-s1*C*c2 -s1*s2+c1*C*c2 S*c2; s1*S -c1*S C]
+    return rotationMatrix(matrix)
+end
+
+function eu2ax(rotation ::eulerAngle)::axisAnglePair
+    t = tan(rotation.PHI/2)
+    sigma = (rotation.phi1 + rotation.phi2)/2.0
+    delta = (rotation.phi1 - rotation.phi2)/2.0
+    tau = sqrt(t^2 + sin(sigma)^2)
+    alpha = 2*atan(tau/(cos(sigma)))
+    if (alpha > pi)
+        alpha = 2*pi - alpha
+    end
+    return axisAnglePair([P/t*cos(delta) P/t*sin(delta) P/t*sin(sigma)], a)
+end
+
+function eu2ro(rotation ::eulerAngle)
+    #EA naar AA en dan AA naar RF
+
+    #nog eens nakijken
+    axisAngle = toAxisAngle(rotation)
+    return rodriguesFrank(axisAngle.n, tan(axisAngle.w/2))
+end
+
+function om2eu(rotation ::rotationMatrix)
+    a_33 = rotation.matrix[3, 3]
+    if abs(a_33) != 1
+        zeta = 1/sqrt(1-a_33^2)
+        phi1 = atan(rotation.matrix[3, 1]*zeta, -rotation.matrix[3, 2]*zeta)
+        PHI = acos(a_33)
+        phi2 = atan(rotation.matrix[1, 3]*zeta, rotation.matrix[2, 3]*zeta)
+        return eulerAngle(phi1, PHI, phi2)
+    else
+        phi1 = atan(rotation.matrix[1, 2], rotation.matrix[1, 1])
+        PHI = pi/2*(1 - a_33)
+        return eulerAngle(phi1, PHI, 0)
+    end
+end
+
+function om2ax(rotation ::rotationMatrix)
+    omega = acos((tr(rotation.matrix) - 1)/2)
+    #inspiratie voor de code: https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/index.htm
+    #dit algo komt niet uit de paper, die onduidelijk was, opletten voor omega = 0 of omega = pi
+    #omega = 0 -> x y en z zijn arbitrair
+    #omega = pi -> x y en z maken uit dus moeten berekend worden
+    #handelen van singularities: https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/david.htm
+end
+
+function ax2om(rotation ::axisAnglePair)
+    n = rotation.n
+    c = cos(rotation.omega)
+    s = sin(rotation.omega)
+    a = [c+(1-c)*n[1]^2 (1-c)*n[1]*n[2]+s*n[3] (1-c)*n[1]*n[3]-s*n[2];
+    (1-c)*n[1]*n[2]-s*n[3] c+(1-c)*n[2]^2 (1-c)*n[2]*n[3]+s*n[1];
+    (1-c)*n[1]*n[3]+s*n[2] (1-c)*n[2]*n[3]-sn[1] c+(1-c)*n[3]^2]
+    if (P == 1)
+        a = transpose(a)
+    end
+    return rotationMatrix(a)
+end
+
+function ax2ro(rotation ::axisAnglePair)
+    #wat als omega = pi???
+    f = tan(rotation.omega/2)
+    return rodriguesFrank(rotation.n*f, f)
+end 
+
+function ax2ho(rotation ::axisAnglePair)
+    f = (3/4(rotation.omega - sin(rotation.omega)))^(1/3)
+    return homochoric(rotation.n*f)
+end
+
+
+function ro2ho(rotation ::rodriguesFrank)
+    rho = abs(rotation.rho)
+    if (rho == 0)
+        return homochoric([0, 0, 0])
+    end
+    #is het nodig om rho == oneindig te behandelen
+    w = 2*atan(rho)
+    f = 3(w - sin(w))/4
+    return homochoric(rotation.n*f^(1/3))
+end
+
+
+function ho2cu()
+end
+
+function cu2ho()
+end"""
