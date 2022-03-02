@@ -53,7 +53,11 @@ end
 #voor de gebruiksvriendelijkheid kan het idee van bovenstaande code ook gebruikt worden.
 
 #Euler angle heeft ZXZ structuur
-function eu2qu(phi1, PHI, phi2) ::rotation
+#input: [phi1, PHI, phi2]
+function eu2qu(rot) ::rotation
+    phi1 = rot[1]
+    PHI = rot[2]
+    phi2 = rot[3]
     sigma = (phi1 + phi2)/2.0
     delta = (phi1 - phi2)/2.0
     c = cos(PHI/2)
@@ -66,8 +70,7 @@ function eu2qu(phi1, PHI, phi2) ::rotation
     end
 end
 
-function om2qu(rot) ::rotation
-    a = rot.matrix
+function om2qu(a) ::rotation
     q0 = 1/2*sqrt(1 + a[1, 1] + a[2, 2] + a[3,3])
     q1 = P/2*sqrt(1 + a[1, 1] - a[2, 2] - a[3,3])
     q2 = P/2*sqrt(1 - a[1, 1] + a[2, 2] - a[3,3])
@@ -81,7 +84,8 @@ function om2qu(rot) ::rotation
     if (a[2, 1] < a[1, 2])
         q3 = -q3
     end
-    return normalize(rotation(q0, q1, q2, q3))
+    #weet niet waarom deze volgorde werkt, maar het werkt
+    return normalize(rotation(q3, q0, q1, q2))
 end
 
 #input = [n_0, n_1, n_2, w]
@@ -92,16 +96,27 @@ function ax2qu(rot) ::rotation
 end
 
 #input = [n_0, n_1, n_2, tan(ω/2)]
+#om de een of andere rede klopt dit niet, god mag weten waarom
 function ro2ax(rotation)
     n = rotation[1:3]
     rho = norm(n)
-    return vcat(n/rho, [2*arctan(rho)])
+    #als ik de paper gebruik zou het 2*atan(rho) moeten zijn,
+    #dit werkt echter niet, 2*atan(rotation[4]) werkt wel.
+    return vcat(n/rho, [2*atan(rotation[4])])
 end
 
-function ro2qu(rotation) ::rotation
+function ro2qu(rotation)
     ax = ro2ax(rotation)
     return ax2qu(ax)
 end
+
+#deze functie is er enkel voor debugging
+function ax2ro(rotation)
+    #wat als omega = pi???
+    n = rotation[1:3]
+    f = tan(rotation[4]/2)
+    return vcat(n, [f])
+end 
 
 gamma = [1.0000000000018805, -0.500000000219485, -0.024999992127593, -0.003928701544781,
     -0.000815270153545, -0.000200950042612, -0.000023979867761, -0.000082028689266,
@@ -122,10 +137,9 @@ function ho2ax(rotation)
     return vcat(h_prime, [2*acos(s)])
 end
 
-function ho2qu(rotation) ::rotation
+function ho2qu(rotation) #::rotation
     ax = ho2ax(rotation)
-    qu = ax2qu(ax) #als ik het niet in een aparte waarde opsla, komt er een error lol
-    return qu
+    return ax2qu(ax) #als ik rotation laat staan, komt er een error lol
 end
 
 function qu2eu(rotation ::rotation)
@@ -138,12 +152,12 @@ function qu2eu(rotation ::rotation)
     q12 = q1^2 + q2^2
     x = sqrt(q03 * q12)
     if (x == 0 && q12 == 0)
-        return [(atan(-2*P*q0*q3, q0^2 - q3^2), 0, 0)]
+        return [atan(-2*P*q0*q3, q0^2 - q3^2), 0, 0]
     elseif (x == 0 && q03 == 0)
-        return [(atan(2*q1*q2, q1^2 - q2^2), pi, 0)]
+        return [atan(2*q1*q2, q1^2 - q2^2), pi, 0]
     else #als x != 0
-        return [(atan((q1*q3 - P*q0*q2)/x,(-P*q0*q1 - q2*q3)/x),
-            atan(2*x, q03-q12), atan((P*q0*q2 + q1*q3)/x, (q2*q3 - P*q0*q1)/x))]
+        return [atan((q1*q3 - P*q0*q2)/x,(-P*q0*q1 - q2*q3)/x),
+            atan(2*x, q03-q12), atan((P*q0*q2 + q1*q3)/x, (q2*q3 - P*q0*q1)/x)]
     end
 end
 
@@ -437,6 +451,7 @@ function as_matrix(rotations ::Array{rotation})
 end
 
 
+
 """
 function eu2om(rotation ::eulerAngle)
     c1 = cos(rotation.phi1)
@@ -506,12 +521,6 @@ function ax2om(rotation ::axisAnglePair)
     return rotationMatrix(a)
 end
 
-function ax2ro(rotation ::axisAnglePair)
-    #wat als omega = pi???
-    f = tan(rotation.omega/2)
-    return rodriguesFrank(rotation.n*f, f)
-end 
-
 function ax2ho(rotation ::axisAnglePair)
     f = (3/4(rotation.omega - sin(rotation.omega)))^(1/3)
     return homochoric(rotation.n*f)
@@ -535,3 +544,5 @@ end
 
 function cu2ho()
 end"""
+
+#yeet
