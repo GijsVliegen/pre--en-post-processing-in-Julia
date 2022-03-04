@@ -347,7 +347,7 @@ Initialize from rotation matrix.
 
         Rotation matrix with det(R) = 1, R.T ∙ R = I.
 """
-function from_matrix(array)
+function from_matrix(array, degrees = false)
     sizes = size(array)
     flat_array = vec(array)
     rotations = rotation[]
@@ -357,10 +357,10 @@ function from_matrix(array)
     for i in 1:9:length(flat_array)
         #zou deze reshape veel tijd in beslag nemen? anders gewoon een om2qu maken die op een vector werkt?
         #of zou ge kunnen flattenen naar een 2dimensionale array ipv naar een vector
-        q = om2qu(reshape(flat_array[i:i+9], (3, 3)))
+        q = om2qu(reshape(flat_array[i:i+8], (3, 3)))
         push!(rotations, q)
     end
-    return reshape(rotations, sizes[2:length(sizes)])
+    return reshape(rotations, sizes[3:length(sizes)])
 end
 
 function from_RodriguesFrank(array)
@@ -436,18 +436,23 @@ function from_random(n, sizes = n) ::Array{rotation}
     return reshape(rotations, sizes)
 end
 
+function as_matrix(rotations ::rotation)
+    return as_matrix([rotations])
+end
+
 #in de python-versie is dit iets anders, nu is return als volgt
 # return: n-dimensionale array van 3x3 matrices
 # bij python: return: n-dimensionale array
 function as_matrix(rotations ::Array{rotation})
     sizes = size(rotations)
     flat_array = vec(rotations)
-    rotationmatrices = Array{Int, 2}[]
+    rotationmatrices = Float64[]
     for i in 1:length(flat_array)
         om = qu2om(flat_array[i])
-        push!(rotationmatrices, om)
+        om_vec = vec(om) 
+        rotationmatrices = vcat(rotationmatrices, om_vec)
     end
-    return reshape(rotationmatrices, sizes)
+    return reshape(rotationmatrices, ((3,3)..., sizes...))
 end
 
 
