@@ -276,7 +276,7 @@ function from_Euler_angles(array, degrees = false)
         flat_array = flat_array/(2*pi)
     end
     for i in 1:3:length(flat_array)
-        q = eu2qu(flat_array[i],flat_array[i+1],flat_array[i+2])
+        q = eu2qu(flat_array[i:i+2])
         push!(rotations, q)
     end
     return reshape(rotations, sizes[2:length(sizes)])
@@ -307,7 +307,7 @@ function from_axis_angle(array, degrees = false)
         flat_array = flat_array/(2*pi)
     end
     for i in 1:4:length(flat_array)
-        q = ax2qu(flat_array[i],flat_array[i+1],flat_array[i+2],flat_array[i+3])
+        q = ax2qu(flat_array[i:i+3])
         push!(rotations, q)
     end
     return reshape(rotations, sizes[2:length(sizes)])
@@ -368,7 +368,7 @@ function from_RodriguesFrank(array)
     flat_array = vec(array)
     rotations = rotation[]
     for i in 1:4:length(flat_array)
-        q = ro2qu(flat_array[i],flat_array[i+1],flat_array[i+2], flat_array[i+3])
+        q = ro2qu(flat_array[i:i+3])
         push!(rotations, q)
     end
     return reshape(rotations, sizes[2:length(sizes)])
@@ -379,7 +379,7 @@ function from_homochoric(array)
     flat_array = vec(array)
     rotations = rotation[]
     for i in 1:3:length(flat_array)
-        q = ho2qu(flat_array[i],flat_array[i+1],flat_array[i+2])
+        q = ho2qu(flat_array[i:i+3])
         push!(rotations, q)
     end
     return reshape(rotations, sizes[2:length(sizes)])
@@ -412,6 +412,9 @@ function inv(rotation ::rotation)
     return rotation(rotation.angle, -rotation.i, -rotation.j, -rotation.k)
 end
 
+function from_random()
+    return from_random(1)[1]
+end
 """
     from_random(n, sizes = n) ::Array{rotation}
 
@@ -436,13 +439,25 @@ function from_random(n, sizes = n) ::Array{rotation}
     return reshape(rotations, sizes)
 end
 
-function as_matrix(rotations ::rotation)
-    return as_matrix([rotations])
+function as_axis_angle(rotation ::rotation)
+    return qu2ax(rotation)
 end
 
-#in de python-versie is dit iets anders, nu is return als volgt
-# return: n-dimensionale array van 3x3 matrices
-# bij python: return: n-dimensionale array
+function as_axis_angle(rotations ::Array{rotation}, degrees = false, pair = false)
+    sizes = size(rotations)
+    flat_array = vec(rotations)
+    rotationmatrices = Float64[]
+    for i in 1:length(flat_array)
+        ax = qu2ax(flat_array[i])
+        rotationmatrices = vcat(rotationmatrices, ax)
+    end
+    return reshape(rotationmatrices, ((4)..., sizes...))
+end
+
+function as_matrix(rotation ::rotation) #nodig als er maar een element is
+    return qu2om(rotation)
+end
+
 function as_matrix(rotations ::Array{rotation})
     sizes = size(rotations)
     flat_array = vec(rotations)
