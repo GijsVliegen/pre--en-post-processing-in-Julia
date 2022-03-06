@@ -3,6 +3,15 @@ import Base: copy
 
 P = 1
 
+"""TODO
+    -voorwaarden checken in sommige omzetfuncties
+    -documentatie schrijven
+    -tests schrijven
+    -from_basis() en as_basis() schrijven
+    -extra argumenten toevoegen zoals degrees, pair...
+    -efficiëntie vergelijken met python-implementatie
+"""
+
 #om documentatie te schrijven
 #https://julia-doc.readthedocs.io/en/latest/manual/documentation/
 
@@ -247,6 +256,9 @@ function from_quaternion(array) ::Array{rotation}
     sizes = size(array) #is een tupel, in de vorm van (4, ...)
     flat_array = vec(array)
     rotations = rotation[]
+    if (length(flat_array) == 4) #als er maar een rotatie is, geen array teruggeven
+        return ho2qu(flat_array)
+    end 
     for i in 1:4:length(flat_array)
         push!(rotations, rotation(flat_array[i], flat_array[i+1], flat_array[i+2], flat_array[i+3]))
     end
@@ -275,6 +287,9 @@ function from_Euler_angles(array, degrees = false)
     if degrees
         flat_array = flat_array/(2*pi)
     end
+    if (length(flat_array) == 3) #als er maar een rotatie is, geen array teruggeven
+        return ho2qu(flat_array)
+    end 
     for i in 1:3:length(flat_array)
         q = eu2qu(flat_array[i:i+2])
         push!(rotations, q)
@@ -306,6 +321,9 @@ function from_axis_angle(array, degrees = false)
     if degrees
         flat_array = flat_array/(2*pi)
     end
+    if (length(flat_array) == 4) #als er maar een rotatie is, geen array teruggeven
+        return ho2qu(flat_array)
+    end 
     for i in 1:4:length(flat_array)
         q = ax2qu(flat_array[i:i+3])
         push!(rotations, q)
@@ -354,6 +372,9 @@ function from_matrix(array, degrees = false)
     if degrees
         flat_array = flat_array/(2*pi)
     end
+    if (length(flat_array) == 9) #als er maar een rotatie is, geen array teruggeven
+        return ho2qu(flat_array)
+    end 
     for i in 1:9:length(flat_array)
         #zou deze reshape veel tijd in beslag nemen? anders gewoon een om2qu maken die op een vector werkt?
         #of zou ge kunnen flattenen naar een 2dimensionale array ipv naar een vector
@@ -367,6 +388,9 @@ function from_RodriguesFrank(array)
     sizes = size(array)
     flat_array = vec(array)
     rotations = rotation[]
+    if (length(flat_array) == 3) #als er maar een rotatie is, geen array teruggeven
+        return ho2qu(flat_array)
+    end 
     for i in 1:4:length(flat_array)
         q = ro2qu(flat_array[i:i+3])
         push!(rotations, q)
@@ -378,8 +402,11 @@ function from_homochoric(array)
     sizes = size(array)
     flat_array = vec(array)
     rotations = rotation[]
+    if (length(flat_array) == 3) #als er maar een rotatie is, geen array teruggeven
+        return ho2qu(flat_array)
+    end 
     for i in 1:3:length(flat_array)
-        q = ho2qu(flat_array[i:i+3])
+        q = ho2qu(flat_array[i:i+2])
         push!(rotations, q)
     end
     return reshape(rotations, sizes[2:length(sizes)])
@@ -470,7 +497,42 @@ function as_matrix(rotations ::Array{rotation})
     return reshape(rotationmatrices, ((3,3)..., sizes...))
 end
 
+function as_euler_angle(rotation ::rotation)
+    return qu2eu(rotation)
+end
 
+function as_euler_angle(rotations ::Array{rotation})
+    sizes = size(rotations)
+    flat_array = vec(rotations)
+    rotationmatrices = Float64[]
+    for i in 1:length(flat_array)
+        eu = qu2eu(flat_array[i])
+        rotationmatrices = vcat(rotationmatrices, eu)
+    end
+    return reshape(rotationmatrices, ((4)..., sizes...))
+end
+
+function as_homochoric(rotations ::Array{rotation})
+    sizes = size(rotations)
+    flat_array = vec(rotations)
+    rotationmatrices = Float64[]
+    for i in 1:length(flat_array)
+        ho = qu2ho(flat_array[i])
+        rotationmatrices = vcat(rotationmatrices, ho)
+    end
+    return reshape(rotationmatrices, ((3)..., sizes...))
+end
+
+function as_RodriguezFrank(rotations ::Array{rotation})
+    sizes = size(rotations)
+    flat_array = vec(rotations)
+    rotationmatrices = Float64[]
+    for i in 1:length(flat_array)
+        ro = qu2ro(flat_array[i])
+        rotationmatrices = vcat(rotationmatrices, ro)
+    end
+    return reshape(rotationmatrices, ((4)..., sizes...))
+end
 
 """
 function eu2om(rotation ::eulerAngle)
