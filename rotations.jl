@@ -80,10 +80,10 @@ function eu2qu(rot) ::rotation
 end
 
 function om2qu(a) ::rotation
-    q0 = 1/2*sqrt(1 + a[1, 1] + a[2, 2] + a[3,3])
-    q1 = P/2*sqrt(1 + a[1, 1] - a[2, 2] - a[3,3])
-    q2 = P/2*sqrt(1 - a[1, 1] + a[2, 2] - a[3,3])
-    q3 = P/2*sqrt(1 - a[1, 1] - a[2, 2] + a[3,3])
+    q0 = 1/2f0*sqrt(1 + a[1, 1] + a[2, 2] + a[3,3])
+    q1 = P/2f0*sqrt(1 + a[1, 1] - a[2, 2] - a[3,3])
+    q2 = P/2f0*sqrt(1 - a[1, 1] + a[2, 2] - a[3,3])
+    q3 = P/2f0*sqrt(1 - a[1, 1] - a[2, 2] + a[3,3])
     if (a[3,2] < a[2, 3])
         q1 = -q1
     end
@@ -170,13 +170,13 @@ function qu2eu(rotation ::rotation)
     end
 end
 
-function qu2om(rotation ::rotation)
+function qu2om(rot ::rotation)
     #moet unit quaternion zijn
     #geeft passieve interpretatie
-    q0 = rotation.angle
-    q1 = rotation.i
-    q2 = rotation.j
-    q3 = rotation.k
+    q0 = rot.angle
+    q1 = rot.i
+    q2 = rot.j
+    q3 = rot.k
     q = q0^2 - (q1^2 + q2^2 + q3^2)
     a = [q+2*q1^2 2*(q1*q2-P*q0*q3) 2*(q1*q3+P*q0*q2);
         2(q1*q2+P*q0*q3) q+2*q2^2 2*(q2*q3-P*q0*q1);
@@ -252,12 +252,12 @@ julia> from_quaternion(reshape([(1:16)...], 4, 2, 2))
  rotation(5, 6, 7, 8)  rotation(13, 14, 15, 16)
 ```
 """
-function from_quaternion(array) ::Array{rotation}
+function from_quaternion(array)
     sizes = size(array) #is een tupel, in de vorm van (4, ...)
     flat_array = vec(array)
     rotations = rotation[]
     if (length(flat_array) == 4) #als er maar een rotatie is, geen array teruggeven
-        return ho2qu(flat_array)
+        return rotation(flat_array[1], flat_array[2], flat_array[3], flat_array[4])
     end 
     for i in 1:4:length(flat_array)
         push!(rotations, rotation(flat_array[i], flat_array[i+1], flat_array[i+2], flat_array[i+3]))
@@ -288,7 +288,7 @@ function from_Euler_angles(array, degrees = false)
         flat_array = flat_array/(2*pi)
     end
     if (length(flat_array) == 3) #als er maar een rotatie is, geen array teruggeven
-        return ho2qu(flat_array)
+        return eu2qu(flat_array)
     end 
     for i in 1:3:length(flat_array)
         q = eu2qu(flat_array[i:i+2])
@@ -322,7 +322,7 @@ function from_axis_angle(array, degrees = false)
         flat_array = flat_array/(2*pi)
     end
     if (length(flat_array) == 4) #als er maar een rotatie is, geen array teruggeven
-        return ho2qu(flat_array)
+        return ax2qu(flat_array)
     end 
     for i in 1:4:length(flat_array)
         q = ax2qu(flat_array[i:i+3])
@@ -373,7 +373,7 @@ function from_matrix(array, degrees = false)
         flat_array = flat_array/(2*pi)
     end
     if (length(flat_array) == 9) #als er maar een rotatie is, geen array teruggeven
-        return ho2qu(flat_array)
+        return om2qu(array)
     end 
     for i in 1:9:length(flat_array)
         #zou deze reshape veel tijd in beslag nemen? anders gewoon een om2qu maken die op een vector werkt?
@@ -389,7 +389,7 @@ function from_RodriguesFrank(array)
     flat_array = vec(array)
     rotations = rotation[]
     if (length(flat_array) == 3) #als er maar een rotatie is, geen array teruggeven
-        return ho2qu(flat_array)
+        return ro2qu(flat_array)
     end 
     for i in 1:4:length(flat_array)
         q = ro2qu(flat_array[i:i+3])
@@ -443,11 +443,13 @@ function from_random()
     return from_random(1)[1]
 end
 """
-    from_random(n, sizes = n) ::Array{rotation}
+    from_random(n, sizes = n, type) ::Array{rotation}
+
+    type = Float32, Float64...
 
 Construeert een array van random rotaties, met gegeven dimensies
 """
-function from_random(n, sizes = n) ::Array{rotation}
+function from_random(n, sizes = n, type = Float64) ::Array{rotation}
     total = 1
     for i in sizes
         total *= i
@@ -457,10 +459,10 @@ function from_random(n, sizes = n) ::Array{rotation}
     end
     rotations = rotation[]
     for i = 1:n
-        u1 = rand()
-        u2 = rand()
-        u3 = rand()
-        h = rotation(sqrt(1-u1)*sin(2*pi*u2), sqrt(1-u1)*cos(2*pi*u2), sqrt(u1)*sin(2*pi*u3), sqrt(u1)*cos(2*pi*u3))
+        u1 = rand(type)
+        u2 = rand(type)
+        u3 = rand(type)
+        h = rotation(sqrt(1-u1)*sin(pi*u2*2), sqrt(1-u1)*cos(pi*u2*2), sqrt(u1)*sin(pi*u3*2), sqrt(u1)*cos(pi*u3*2))
         push!(rotations, copy(h))
     end
     return reshape(rotations, sizes)
@@ -473,7 +475,7 @@ end
 function as_axis_angle(rotations ::Array{rotation}, degrees = false, pair = false)
     sizes = size(rotations)
     flat_array = vec(rotations)
-    rotationmatrices = Float64[]
+    rotationmatrices = Float32[]
     for i in 1:length(flat_array)
         ax = qu2ax(flat_array[i])
         rotationmatrices = vcat(rotationmatrices, ax)
@@ -488,7 +490,7 @@ end
 function as_matrix(rotations ::Array{rotation})
     sizes = size(rotations)
     flat_array = vec(rotations)
-    rotationmatrices = Float64[]
+    rotationmatrices = Float32[]
     for i in 1:length(flat_array)
         om = qu2om(flat_array[i])
         om_vec = vec(om) 
@@ -504,7 +506,7 @@ end
 function as_euler_angle(rotations ::Array{rotation})
     sizes = size(rotations)
     flat_array = vec(rotations)
-    rotationmatrices = Float64[]
+    rotationmatrices = Float32[]
     for i in 1:length(flat_array)
         eu = qu2eu(flat_array[i])
         rotationmatrices = vcat(rotationmatrices, eu)
@@ -515,7 +517,7 @@ end
 function as_homochoric(rotations ::Array{rotation})
     sizes = size(rotations)
     flat_array = vec(rotations)
-    rotationmatrices = Float64[]
+    rotationmatrices = Float32[]
     for i in 1:length(flat_array)
         ho = qu2ho(flat_array[i])
         rotationmatrices = vcat(rotationmatrices, ho)
@@ -526,7 +528,7 @@ end
 function as_RodriguezFrank(rotations ::Array{rotation})
     sizes = size(rotations)
     flat_array = vec(rotations)
-    rotationmatrices = Float64[]
+    rotationmatrices = Float32[]
     for i in 1:length(flat_array)
         ro = qu2ro(flat_array[i])
         rotationmatrices = vcat(rotationmatrices, ro)
