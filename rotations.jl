@@ -1,5 +1,5 @@
 using LinearAlgebra
-import Base: copy
+using Einsum
 
 P = 1
 
@@ -36,7 +36,7 @@ function getComponents(rot ::rotation)
     return [rot.angle, rot.i, rot.j, rot.k]
 end
 
-function copy(rot ::rotation)
+function Base.:copy(rot ::rotation)
     return rotation(rot.angle, rot.i, rot.j, rot.k)
 
 end
@@ -125,7 +125,7 @@ function ax2ro(rotation)
     n = rotation[1:3]
     f = tan(rotation[4]/2)
     return vcat(n, [f])
-end 
+end
 
 gamma = [1.0000000000018805, -0.500000000219485, -0.024999992127593, -0.003928701544781,
     -0.000815270153545, -0.000200950042612, -0.000023979867761, -0.000082028689266,
@@ -258,7 +258,7 @@ function from_quaternion(array)
     rotations = rotation[]
     if (length(flat_array) == 4) #als er maar een rotatie is, geen array teruggeven
         return rotation(flat_array[1], flat_array[2], flat_array[3], flat_array[4])
-    end 
+    end
     for i in 1:4:length(flat_array)
         push!(rotations, rotation(flat_array[i], flat_array[i+1], flat_array[i+2], flat_array[i+3]))
     end
@@ -289,7 +289,7 @@ function from_Euler_angles(array, degrees = false)
     end
     if (length(flat_array) == 3) #als er maar een rotatie is, geen array teruggeven
         return eu2qu(flat_array)
-    end 
+    end
     for i in 1:3:length(flat_array)
         q = eu2qu(flat_array[i:i+2])
         push!(rotations, q)
@@ -323,7 +323,7 @@ function from_axis_angle(array, degrees = false)
     end
     if (length(flat_array) == 4) #als er maar een rotatie is, geen array teruggeven
         return ax2qu(flat_array)
-    end 
+    end
     for i in 1:4:length(flat_array)
         q = ax2qu(flat_array[i:i+3])
         push!(rotations, q)
@@ -374,7 +374,7 @@ function from_matrix(array, degrees = false)
     end
     if (length(flat_array) == 9) #als er maar een rotatie is, geen array teruggeven
         return om2qu(array)
-    end 
+    end
     for i in 1:9:length(flat_array)
         #zou deze reshape veel tijd in beslag nemen? anders gewoon een om2qu maken die op een vector werkt?
         #of zou ge kunnen flattenen naar een 2dimensionale array ipv naar een vector
@@ -390,7 +390,7 @@ function from_RodriguesFrank(array)
     rotations = rotation[]
     if (length(flat_array) == 3) #als er maar een rotatie is, geen array teruggeven
         return ro2qu(flat_array)
-    end 
+    end
     for i in 1:4:length(flat_array)
         q = ro2qu(flat_array[i:i+3])
         push!(rotations, q)
@@ -404,7 +404,7 @@ function from_homochoric(array)
     rotations = rotation[]
     if (length(flat_array) == 3) #als er maar een rotatie is, geen array teruggeven
         return ho2qu(flat_array)
-    end 
+    end
     for i in 1:3:length(flat_array)
         q = ho2qu(flat_array[i:i+2])
         push!(rotations, q)
@@ -416,18 +416,34 @@ end
 function from_cubochoric(array)
 end
 
+#Rotate a vector
 function apply(rotation ::rotation, vector ::Array{Number, 1})
     qvector = rotation(vector[1], vector[2], vector[3], 0)
     result = multiply(multiply(rotation, qvector), inv(rotation))
     return [result.i, result.j, result.k]
 end
 
-function multiply(r ::rotation, nr ::Number) ::rotation
+#Rotate a matrix
+function apply(rotation ::rotation, vector ::Array{Number, 2})
+    R = as_matrix(rotation)
+    return R*vector
+end
+
+#Rotate a fourth order tensor TODO
+function apply(rotation ::rotation, vector ::Array{Number, 4})
+    R = as_matrix(rotation)
+end
+
+function Base.:*(r ::rotation, nr ::Number) ::rotation
     return rotation(r.angle * nr, r.i * nr, r.j * nr, r.k * nr)
 end
 
+function Base.:*(nr ::Number, r ::rotation) ::rotation
+    return r*nr
+end
+
 #niet commutatief
-function multiply(f ::rotation, s ::rotation) ::rotation
+function Base.:*(f ::rotation, s ::rotation) ::rotation
     angle = f.angle*s.angle - (f.i * s.i + f.j * s.j + f.k * s.k)
     i = (f.j * s.k - f.k * s.j) + f.angle * s.i + s.angle * f.i
     j = (f.k * s.i - f.i * s.k) + f.angle * s.j + s.angle * f.j
@@ -435,8 +451,8 @@ function multiply(f ::rotation, s ::rotation) ::rotation
     return rotation(angle, i, j, k)
 end
 
-function inv(rotation ::rotation)
-    return rotation(rotation.angle, -rotation.i, -rotation.j, -rotation.k)
+function Base.:-(rot ::rotation)
+    return rotation(rot.angle, -rot.i, -rot.j, -rot.k)
 end
 
 function from_random()
@@ -493,7 +509,7 @@ function as_matrix(rotations ::Array{rotation})
     rotationmatrices = Float32[]
     for i in 1:length(flat_array)
         om = qu2om(flat_array[i])
-        om_vec = vec(om) 
+        om_vec = vec(om)
         rotationmatrices = vcat(rotationmatrices, om_vec)
     end
     return reshape(rotationmatrices, ((3,3)..., sizes...))
