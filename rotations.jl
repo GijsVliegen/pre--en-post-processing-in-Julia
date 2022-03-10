@@ -80,17 +80,23 @@ function eu2qu(rot) ::rotation
 end
 
 function om2qu(a) ::rotation
-    q0 = 1/2f0*sqrt(1 + a[1, 1] + a[2, 2] + a[3,3])
-    q1 = P/2f0*sqrt(1 + a[1, 1] - a[2, 2] - a[3,3])
-    q2 = P/2f0*sqrt(1 - a[1, 1] + a[2, 2] - a[3,3])
-    q3 = P/2f0*sqrt(1 - a[1, 1] - a[2, 2] + a[3,3])
-    if (a[3,2] < a[2, 3])
+    if (1 + a[1] + a[5] + a[9] < 0 || 1 + a[1] - a[5] - a[9] < 0
+        || 1 - a[1] + a[5] - a[9] < 0 || 1 - a[1] - a[5] + a[9] < 0)
+        print(a)
+        return rotation(1, 1, 0, 0)
+    end
+
+    q0 = 1/2f0*sqrt(1 + a[1] + a[5] + a[9])
+    q1 = P/2f0*sqrt(1 + a[1] - a[5] - a[9])
+    q2 = P/2f0*sqrt(1 - a[1] + a[5] - a[9])
+    q3 = P/2f0*sqrt(1 - a[1] - a[5] + a[9])
+    if (a[6] < a[8])
         q1 = -q1
     end
-    if (a[1, 3] < a[3, 1])
+    if (a[7] < a[3])
         q2 = -q2
     end
-    if (a[2, 1] < a[1, 2])
+    if (a[2] < a[4])
         q3 = -q3
     end
     #weet niet waarom deze volgorde werkt, maar het werkt
@@ -173,14 +179,14 @@ end
 function qu2om(rot ::rotation)
     #moet unit quaternion zijn
     #geeft passieve interpretatie
-    q0 = rot.angle
-    q1 = rot.i
-    q2 = rot.j
-    q3 = rot.k
+    q0 = convert(Float64, rot.angle)
+    q1 = convert(Float64, rot.i)
+    q2 = convert(Float64, rot.j)
+    q3 = convert(Float64, rot.k)
     q = q0^2 - (q1^2 + q2^2 + q3^2)
-    a = [q+2*q1^2 2*(q1*q2-P*q0*q3) 2*(q1*q3+P*q0*q2);
-        2(q1*q2+P*q0*q3) q+2*q2^2 2*(q2*q3-P*q0*q1);
-        2*(q1*q3-P*q0*q2) 2*(q2*q3+P*q0*q1) q+2*q3^2]
+    a = [q+2*q1^2, 2*(q1*q2-P*q0*q3), 2*(q1*q3+P*q0*q2),
+        2(q1*q2+P*q0*q3), q+2*q2^2, 2*(q2*q3-P*q0*q1),
+        2*(q1*q3-P*q0*q2), 2*(q2*q3+P*q0*q1), q+2*q3^2]
     return a
 end
 
@@ -378,7 +384,7 @@ function from_matrix(array, degrees = false)
     for i in 1:9:length(flat_array)
         #zou deze reshape veel tijd in beslag nemen? anders gewoon een om2qu maken die op een vector werkt?
         #of zou ge kunnen flattenen naar een 2dimensionale array ipv naar een vector
-        q = om2qu(reshape(flat_array[i:i+8], (3, 3)))
+        q = om2qu(flat_array[i:i+8])
         push!(rotations, q)
     end
     return reshape(rotations, sizes[3:length(sizes)])
@@ -500,7 +506,7 @@ function as_axis_angle(rotations ::Array{rotation}, degrees = false, pair = fals
 end
 
 function as_matrix(rotation ::rotation) #nodig als er maar een element is
-    return qu2om(rotation)
+    return reshape(qu2om(rotation), (3,3))
 end
 
 function as_matrix(rotations ::Array{rotation})
@@ -509,8 +515,7 @@ function as_matrix(rotations ::Array{rotation})
     rotationmatrices = Float32[]
     for i in 1:length(flat_array)
         om = qu2om(flat_array[i])
-        om_vec = vec(om)
-        rotationmatrices = vcat(rotationmatrices, om_vec)
+        rotationmatrices = vcat(rotationmatrices, om)
     end
     return reshape(rotationmatrices, ((3,3)..., sizes...))
 end
@@ -527,7 +532,7 @@ function as_euler_angle(rotations ::Array{rotation})
         eu = qu2eu(flat_array[i])
         rotationmatrices = vcat(rotationmatrices, eu)
     end
-    return reshape(rotationmatrices, ((4)..., sizes...))
+    return reshape(rotationmatrices, ((3)..., sizes...))
 end
 
 function as_homochoric(rotations ::Array{rotation})
