@@ -2,9 +2,11 @@ import damask, time
 startTime = time.time()
 processST = time.process_time()
 
-a = damask.Rotation.from_random(10000)
-b = a.as_matrix()
-c = damask.Rotation.from_matrix(b)
+#timeit
+
+a = damask.Rotation.from_random(50000)
+b = a.as_Euler_angles()
+c = damask.Rotation.from_Euler_angles(b)
 
 # get the end time
 endTime = time.time()

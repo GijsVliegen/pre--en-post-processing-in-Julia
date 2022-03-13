@@ -1,23 +1,17 @@
 include("rotations.jl")
 using BenchmarkTools #installatie vanuit https://github.com/JuliaCI/BenchmarkTools.jl
 
-function operation(a)
+function operationOm(a)
     b = as_matrix(a)
     c = from_matrix(b)
 end
 
-function time(a)
-    @time operation(a)
-    #@benchmark operation(a) 
-end
-function timing(n)
-    a = from_random(n, n, Float64)
-    #println(a)
-    time(a)
+function operationEu(a)
+    b = as_euler_angle(a)
+    c = from_Euler_angles(b)
 end
 
-function timingB(a)
-    b = as_matrix(a)
-    c = from_matrix(b)
-    return c
-end
+n = 1000
+a = from_random(n, n, Float64)
+@btime operationEu($a)
+

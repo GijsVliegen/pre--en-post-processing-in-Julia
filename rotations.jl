@@ -10,6 +10,10 @@ P = 1
     -from_basis() en as_basis() schrijven
     -extra argumenten toevoegen zoals degrees, pair...
     -efficiëntie vergelijken met python-implementatie
+
+    row major and column major
+
+    ambiguiteit bij quaternion: als angle/omega 0 is, 
 """
 
 #om documentatie te schrijven
@@ -20,7 +24,7 @@ P = 1
 
 struct rotation
     #eigenlijk gewoon een quaternion
-    angle
+    angle #change to omega
     i
     j
     k
@@ -258,7 +262,7 @@ julia> from_quaternion(reshape([(1:16)...], 4, 2, 2))
  rotation(5, 6, 7, 8)  rotation(13, 14, 15, 16)
 ```
 """
-function from_quaternion(array)
+function from_quaternion(array) #greek letters?
     sizes = size(array) #is een tupel, in de vorm van (4, ...)
     flat_array = vec(array)
     rotations = rotation[]
@@ -434,6 +438,9 @@ function apply(rotation ::rotation, vector ::Array{Number, 2})
     R = as_matrix(rotation)
     return R*vector
 end
+
+#explanation of ij,j notation:
+#v'[1] = R[1,1]*v[1] + R[1,2]*v[2] + R[1,3]*v[3]
 
 #Rotate a fourth order tensor TODO
 function apply(rotation ::rotation, vector ::Array{Number, 4})
