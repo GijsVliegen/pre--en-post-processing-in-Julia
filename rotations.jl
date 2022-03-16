@@ -58,6 +58,20 @@ function isClose(first ::rotation, other ::rotation, rtol, atol, nanEquals = tru
     return true
 end
 
+function isClose(first ::Array{rotation, 1}, other ::Array{rotation, 1}, rtol, atol, nanEquals = true)
+    if length(first) != length(other)
+        return false
+    end
+    result = true
+    for i in 1:length(first)
+        if !isClose(first[i], other[i], rtol, atol, nanEquals)
+            result = false
+            break
+        end
+    end
+    return result
+end
+
 #wat volgt zijn algoritmes voor het omzetten van rotaties naar een bepaalde representatie
 #enkel de directe omzettingen zijn gegeven, andere omzettingen kunnen opgebouwd worden
 #volgens de tabel pagina 11 van de paper "Consistent representations of and conversions
@@ -388,7 +402,11 @@ function from_matrix(array, degrees = false)
     return reshape(rotations, sizes[3:length(sizes)])
 end
 
-function from_rodriguesfrank(array)
+function from_rodriguesfrank(array ::Array{<:Number, 1})
+    return ro2qu(array)
+end
+
+function from_rodriguesfrank(array ::Array{<:Number, 2})
     sizes = size(array)
     flat_array = vec(array)
     rotations = rotation[]
@@ -457,7 +475,7 @@ function Base.:*(f ::rotation, s ::rotation) ::rotation
     return rotation(angle, i, j, k)
 end
 
-function inv(rot ::rotation)
+function Base.:inv(rot ::rotation)
     return rotation(rot.angle, -rot.i, -rot.j, -rot.k)
 end
 
@@ -533,7 +551,7 @@ function as_euler_angle(rotations ::Array{rotation})
         eu = qu2eu(flat_array[i])
         rotationmatrices = vcat(rotationmatrices, eu)
     end
-    return reshape(rotationmatrices, ((4)..., sizes...))
+    return reshape(rotationmatrices, ((3)..., sizes...))
 end
 
 function as_homochoric(rotations ::Array{rotation})
@@ -556,6 +574,10 @@ function as_rodriguesfrank(rotations ::Array{rotation})
         rotationmatrices = vcat(rotationmatrices, ro)
     end
     return reshape(rotationmatrices, ((4)..., sizes...))
+end
+
+function as_rodriguesfrank(rotation ::rotation)
+    return qu2ro(rotation)
 end
 
 """
