@@ -86,7 +86,7 @@ function eu2qu(rot) ::rotation
     if q0 < 0
         return rotation(q0, P*s*cos(delta), P*s*sin(delta), P*c*sin(sigma))
     else
-        return rotation(q0, -P*s*cos(delta), -P*s*sin(delta), -P*c*sin(sigma))
+        return rotation(-q0, -P*s*cos(delta), -P*s*sin(delta), -P*c*sin(sigma))
     end
 end
 
@@ -138,12 +138,17 @@ function ax2ro(rotation)
     return vcat(n, [f])
 end
 
-gamma = [1.0000000000018805, -0.500000000219485, -0.024999992127593, -0.003928701544781,
+gamma2 = [1.0000000000018805, -0.500000000219485, -0.024999992127593, -0.003928701544781,
     -0.000815270153545, -0.000200950042612, -0.000023979867761, -0.000082028689266,
     0.000124487150421, -0.000174911421482, 0.000170348193414, -0.000120620650041,
     0.000059719705869, -0.000019807567240, 0.000003953714684, -0.000000365550014]
 #[n_0, n_1, n_2]
 function ho2ax(rotation)
+
+    gamma = [1.0000000000018805, -0.500000000219485, -0.024999992127593, -0.003928701544781,
+-0.000815270153545, -0.000200950042612, -0.000023979867761, -0.000082028689266,
+0.000124487150421, -0.000174911421482, 0.000170348193414, -0.000120620650041,
+0.000059719705869, -0.000019807567240, 0.000003953714684, -0.000000365550014]
     small_h = norm(rotation)
     small_h_squared = small_h^2
     if small_h == 0
@@ -499,14 +504,30 @@ function as_axis_angle(rotation ::rotation)
 end
 
 function as_axis_angle(rotations ::Array{rotation}, degrees = false, pair = false)
+    length = 4
     sizes = size(rotations)
     flat_array = vec(rotations)
-    rotationmatrices = Float32[]
+    result = Array{Float64}(undef, tupleSize(sizes)*length)
     for i in 1:length(flat_array)
         ax = qu2ax(flat_array[i])
-        rotationmatrices = vcat(rotationmatrices, ax)
+        result[i*length-length+1:i*length] = ax
     end
-    return reshape(rotationmatrices, ((4)..., sizes...))
+    return reshape(result, ((4)..., sizes...))
+end
+function as(qu2x::Function, xSize ::Tuple, rotations ::Array{rotation})
+    l = tupleSize(xSize)
+    sizes = size(rotations)
+    flat_array = vec(rotations)
+    result = Array{Float64}(undef, tupleSize(sizes)*l)
+    for i in 1:length(flat_array)
+        x = qu2x(flat_array[i])
+        result[i*l-l+1:i*l] = x
+    end
+    return reshape(result, (xSize..., sizes...))
+end
+
+function as_matrix2(rotations ::Array{rotation})
+    return as(qu2om, (3,3), rotations)
 end
 
 function as_matrix(rotation ::rotation) #nodig als er maar een element is
@@ -514,9 +535,10 @@ function as_matrix(rotation ::rotation) #nodig als er maar een element is
 end
 
 function as_matrix(rotations ::Array{rotation})
+    l = 9
     sizes = size(rotations)
     flat_array = vec(rotations)
-    rotationmatrices = Array{Float64}(undef, tupleSize(((3, 3)..., sizes...)))
+    rotationmatrices = Array{Float64}(undef, tupleSize(sizes)*l)
     for i in 1:length(flat_array)
         om = qu2om(flat_array[i])
         rotationmatrices[i*9-8:i*9] = om
