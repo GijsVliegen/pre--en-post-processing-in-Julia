@@ -10,6 +10,7 @@ P = 1
     -from_basis() en as_basis() schrijven
     -extra argumenten toevoegen zoals degrees, pair...
     -efficiëntie vergelijken met python-implementatie
+    -from_random enkel quaternionen in pos. hemisphere laten maken
 
     row major and column major
 
@@ -40,7 +41,7 @@ end
 function normalize(rot ::rotation)
     abs_val = sqrt(rot.angle^2 + rot.i^2 + rot.j^2 + rot.k^2)
     #return multiply(rot, abs_val)
-    return rotation(rot.i/abs_val, rot.j/abs_val, rot.k/abs_val, rot.angle/abs_val)
+    return rotation(rot.angle/abs_val, rot.i/abs_val, rot.j/abs_val, rot.k/abs_val)
 end
 
 function getComponents(rot ::rotation)
@@ -104,22 +105,23 @@ function eu2qu(rot) ::rotation
     end
 end
 
+#[a_11, a_12, a_13, a_21, a_22, a_23, a_31, a_32, a_33]
 function om2qu(a) ::rotation
-    q0 = 1/2f0*sqrt(1 + a[1, 1] + a[2, 2] + a[3,3])
-    q1 = P/2f0*sqrt(1 + a[1, 1] - a[2, 2] - a[3,3])
-    q2 = P/2f0*sqrt(1 - a[1, 1] + a[2, 2] - a[3,3])
-    q3 = P/2f0*sqrt(1 - a[1, 1] - a[2, 2] + a[3,3])
-    if (a[3,2] < a[2, 3])
+    q0 = 1/2f0*sqrt(1 + a[1] + a[5] + a[9])
+    q1 = P/2f0*sqrt(1 + a[1] - a[5] - a[9])
+    q2 = P/2f0*sqrt(1 - a[1] + a[5] - a[9])
+    q3 = P/2f0*sqrt(1 - a[1] - a[5] + a[9])
+    if (a[6] < a[8])
         q1 = -q1
     end
-    if (a[1, 3] < a[3, 1])
+    if (a[7] < a[3])
         q2 = -q2
     end
-    if (a[2, 1] < a[1, 2])
+    if (a[2] < a[4])
         q3 = -q3
     end
     #weet niet waarom deze volgorde werkt, maar het werkt
-    return normalize(rotation(q3, q0, q1, q2))
+    return normalize(rotation(q0, q1, q2, q3))
 end
 
 #input = [n_0, n_1, n_2, w]
@@ -208,9 +210,9 @@ function qu2om(rot ::rotation)
     q2 = rot.j
     q3 = rot.k
     q = q0^2 - (q1^2 + q2^2 + q3^2)
-    a = [q+2*q1^2 2*(q1*q2-P*q0*q3) 2*(q1*q3+P*q0*q2);
-        2(q1*q2+P*q0*q3) q+2*q2^2 2*(q2*q3-P*q0*q1);
-        2*(q1*q3-P*q0*q2) 2*(q2*q3+P*q0*q1) q+2*q3^2]
+    a = [q+2*q1^2, 2*(q1*q2-P*q0*q3), 2*(q1*q3+P*q0*q2),
+        2(q1*q2+P*q0*q3), q+2*q2^2, 2*(q2*q3-P*q0*q1),
+        2*(q1*q3-P*q0*q2), 2*(q2*q3+P*q0*q1), q+2*q3^2]
     return a
 end
 
@@ -259,6 +261,11 @@ function qu2ho(rotation ::rotation)
     return n*f^(1/3)
 end
 
+#omega, i, j, k
+function qu2qu(rot) ::rotation
+    return rotation(rot[1], rot[2], rot[3], rot[4])
+end
+
 #moeten deze in positive real hemisphere zijn? en wat is dan de logica hierachter?
 #voorlopig wordt er nergens gecheckt of het unit quaternionen zijn
 #misschien hiervoor een voorwaarde schrijven in de struct zelf?
@@ -282,17 +289,20 @@ julia> from_quaternion(reshape([(1:16)...], 4, 2, 2))
  rotation(5, 6, 7, 8)  rotation(13, 14, 15, 16)
 ```
 """
-function from_quaternion(array) #greek letters?
+
+function from(x2qu::Function, nrOfDimension ::Int, l ::Int, array)
     sizes = size(array) #is een tupel, in de vorm van (4, ...)
     flat_array = vec(array)
-    rotations = rotation[]
-    if (length(flat_array) == 4) #als er maar een rotatie is, geen array teruggeven
-        return rotation(flat_array[1], flat_array[2], flat_array[3], flat_array[4])
+    result = rotation[]
+    for i in 1:l:length(flat_array)
+        qu = x2qu(flat_array[i:i+l-1])
+        push!(result, qu)
     end
-    for i in 1:4:length(flat_array)
-        push!(rotations, rotation(flat_array[i], flat_array[i+1], flat_array[i+2], flat_array[i+3]))
-    end
-    return reshape(rotations, sizes[2:length(sizes)])
+    reshape(result, sizes[nrOfDimension+1:length(sizes)])
+end
+
+function from_quaternion(array) #greek letters?
+    return from(qu2qu, 1, 4, array)
 end
 
 #deze voorwaarden worden opnieuw nergens gechecked, misschien dit checken in de functie eu2qu?
@@ -310,24 +320,14 @@ Initialize from Bungle Euler angles.
 
         Euler angles are given in degrees. Defaults to False.
 """
-function from_euler_angle(array, degrees = false)
-    sizes = size(array)
-    flat_array = vec(array)
-    rotations = rotation[]
-    if degrees
-        flat_array = flat_array/(2*pi)
-    end
-    if (length(flat_array) == 3) #als er maar een rotatie is, geen array teruggeven
-        return eu2qu(flat_array)
-    end
-    for i in 1:3:length(flat_array)
-        q = eu2qu(flat_array[i:i+2])
-        push!(rotations, q)
-    end
-    return reshape(rotations, sizes[2:length(sizes)])
+function from_euler_angle(array)
+    return from(eu2qu, 1, 3, array)
 end
 
 
+function from_axis_angle(array ::Array{<:Number, 1})
+    return ax2qu(array)
+end
 
 #deze voorwaarden worden opnieuw nergens gechecked, misschien dit checken in de functie ax2qu?
 """
@@ -344,21 +344,8 @@ Initialize from Axis angle pair.
 
         Euler angles are given in degrees. Defaults to False.
 """
-function from_axis_angle(array, degrees = false)
-    sizes = size(array)
-    flat_array = vec(array)
-    rotations = rotation[]
-    if degrees
-        flat_array = flat_array/(2*pi)
-    end
-    if (length(flat_array) == 4) #als er maar een rotatie is, geen array teruggeven
-        return ax2qu(flat_array)
-    end
-    for i in 1:4:length(flat_array)
-        q = ax2qu(flat_array[i:i+3])
-        push!(rotations, q)
-    end
-    return reshape(rotations, sizes[2:length(sizes)])
+function from_axis_angle(array ::Array{<:Number, 1}, degrees = false)
+    return from(ax2qu, 1, 4, array)
 end
 
 #deze voorwaarden worden nergens gechecked, misschien dit checken in de functie om2qu?
@@ -386,7 +373,7 @@ end
 
 #deze voorwaarden worden nergens gechecked, misschien dit checken in de functie om2qu?
 """
-    from_basis(array, degrees = false) ::Array{rotation}
+    from_matrix(array, degrees = false) ::Array{rotation}
 
 Initialize from rotation matrix.
 
@@ -396,23 +383,12 @@ Initialize from rotation matrix.
         Rotation matrix with det(R) = 1, R.T ∙ R = I.
 """
 
-function from_matrix(array, degrees = false)
-    sizes = size(array)
-    flat_array = vec(array)
-    rotations = rotation[]
-    if degrees
-        flat_array = flat_array/(2*pi)
-    end
-    if (length(flat_array) == 9) #als er maar een rotatie is, geen array teruggeven
-        return om2qu(array)
-    end
-    for i in 1:9:length(flat_array)
-        #zou deze reshape veel tijd in beslag nemen? anders gewoon een om2qu maken die op een vector werkt?
-        #of zou ge kunnen flattenen naar een 2dimensionale array ipv naar een vector
-        q = om2qu(reshape(flat_array[i:i+8], (3, 3)))
-        push!(rotations, q)
-    end
-    return reshape(rotations, sizes[3:length(sizes)])
+function from_matrix(array ::Array{<:Number, 2})
+    return om2qu(array)
+end
+
+function from_matrix(array ::Array{<:Number, 3}, degrees = false)
+    return from(om2qu, 2, 9, array)
 end
 
 function from_rodriguesfrank(array ::Array{<:Number, 1})
@@ -420,35 +396,15 @@ function from_rodriguesfrank(array ::Array{<:Number, 1})
 end
 
 function from_rodriguesfrank(array ::Array{<:Number, 2})
-    sizes = size(array)
-    flat_array = vec(array)
-    rotations = rotation[]
-    if (length(flat_array) == 3) #als er maar een rotatie is, geen array teruggeven
-        return ro2qu(flat_array)
-    end
-    for i in 1:4:length(flat_array)
-        q = ro2qu(flat_array[i:i+3])
-        push!(rotations, q)
-    end
-    return reshape(rotations, sizes[2:length(sizes)])
+    from(ro2qu, 1, 4, array)
 end
 
-function from_homochoric(array)
-    sizes = size(array)
-    flat_array = vec(array)
-    rotations = rotation[]
-    if (length(flat_array) == 3) #als er maar een rotatie is, geen array teruggeven
-        return ho2qu(flat_array)
-    end
-    for i in 1:3:length(flat_array)
-        q = ho2qu(flat_array[i:i+2])
-        push!(rotations, q)
-    end
-    return reshape(rotations, sizes[2:length(sizes)])
+function from_homochoric(array ::Array{<:Number, 1})
+    return ho2qu(array)
 end
 
-# misschien voor later
-function from_cubochoric(array)
+function from_homochoric(array ::Array{<:Number, 2})
+    from(ho2qu, 1, 3, array)
 end
 
 #Rotate a vector
@@ -529,8 +485,8 @@ function as(qu2x::Function, xSize ::Tuple, rotations ::Array{rotation})
     return reshape(result, (xSize..., sizes...))
 end
 
-function as_axis_angle(rotation ::rotation)
-    return as_axis_angle([rotation])
+function as_axis_angle(rotation ::rotation)#nodig als er maar een element is
+    return reshape(qu2ax(rotation), (4, ))
 end
 
 function as_axis_angle(rotations ::Array{rotation}, degrees = false, pair = false)
@@ -538,39 +494,35 @@ function as_axis_angle(rotations ::Array{rotation}, degrees = false, pair = fals
 end
 
 function as_matrix(rotation ::rotation) #nodig als er maar een element is
-    return as_matrix([rotation])
+    return reshape(qu2om(rotation), (3,3))
 end
 
 function as_matrix(rotations ::Array{rotation})
     return as(qu2om, (3,3), rotations)
 end
 
-function as_euler_angle(rotation ::rotation)
-    return as_euler_angle([rotation])
+function as_euler_angle(rotation ::rotation)#nodig als er maar een element is
+    return reshape(qu2eu(rotation), (3,))
 end
 
 function as_euler_angle(rotations ::Array{rotation})
     return as(qu2eu, (3,), rotations)
 end
 
-function as_homochoric(rotation ::rotation)
-    return as_homochoric([rotation])
+function as_homochoric(rotation ::rotation)#nodig als er maar een element is
+    return reshape(qu2ho(rotation), (3,))
 end
 
 function as_homochoric(rotations ::Array{rotation})
     return as(qu2ho, (3,), rotations)
 end
 
-function as_rodriguesfrank(rotations ::rotation)
-    return as_rodriguesfrank([rotations])
+function as_rodriguesfrank(rotation ::rotation)#nodig als er maar een element is
+    return reshape(qu2ro(rotation), (4, ))
 end
 
 function as_rodriguesfrank(rotations ::Array{rotation})
     return as(qu2ro, (4, ), rotations)
-end
-
-function as_rodriguesfrank(rotation ::rotation)
-    return qu2ro(rotation)
 end
 
 """
