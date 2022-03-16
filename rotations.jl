@@ -499,21 +499,6 @@ function from_random(n, sizes = n, type = Float64) ::Array{rotation}
     return reshape(rotations, sizes)
 end
 
-function as_axis_angle(rotation ::rotation)
-    return qu2ax(rotation)
-end
-
-function as_axis_angle(rotations ::Array{rotation}, degrees = false, pair = false)
-    length = 4
-    sizes = size(rotations)
-    flat_array = vec(rotations)
-    result = Array{Float64}(undef, tupleSize(sizes)*length)
-    for i in 1:length(flat_array)
-        ax = qu2ax(flat_array[i])
-        result[i*length-length+1:i*length] = ax
-    end
-    return reshape(result, ((4)..., sizes...))
-end
 function as(qu2x::Function, xSize ::Tuple, rotations ::Array{rotation})
     l = tupleSize(xSize)
     sizes = size(rotations)
@@ -526,61 +511,44 @@ function as(qu2x::Function, xSize ::Tuple, rotations ::Array{rotation})
     return reshape(result, (xSize..., sizes...))
 end
 
-function as_matrix2(rotations ::Array{rotation})
-    return as(qu2om, (3,3), rotations)
+function as_axis_angle(rotation ::rotation)
+    return as_axis_angle([rotation])
+end
+
+function as_axis_angle(rotations ::Array{rotation}, degrees = false, pair = false)
+    return as(qu2ax, (4,), rotations)
 end
 
 function as_matrix(rotation ::rotation) #nodig als er maar een element is
-    return reshape(qu2om(rotation), (3,3))
+    return as_matrix([rotation])
 end
 
 function as_matrix(rotations ::Array{rotation})
-    l = 9
-    sizes = size(rotations)
-    flat_array = vec(rotations)
-    rotationmatrices = Array{Float64}(undef, tupleSize(sizes)*l)
-    for i in 1:length(flat_array)
-        om = qu2om(flat_array[i])
-        rotationmatrices[i*9-8:i*9] = om
-    end
-    return reshape(rotationmatrices, ((3,3)..., sizes...))
+    return as(qu2om, (3,3), rotations)
 end
 
 function as_euler_angle(rotation ::rotation)
-    return qu2eu(rotation)
+    return as_euler_angle([rotation])
 end
 
 function as_euler_angle(rotations ::Array{rotation})
-    sizes = size(rotations)
-    flat_array = vec(rotations)
-    rotationmatrices = Float32[]
-    for i in 1:length(flat_array)
-        eu = qu2eu(flat_array[i])
-        rotationmatrices = vcat(rotationmatrices, eu)
-    end
-    return reshape(rotationmatrices, ((3)..., sizes...))
+    return as(qu2eu, (3,), rotations)
+end
+
+function as_homochoric(rotation ::rotation)
+    return as_homochoric([rotation])
 end
 
 function as_homochoric(rotations ::Array{rotation})
-    sizes = size(rotations)
-    flat_array = vec(rotations)
-    rotationmatrices = Float32[]
-    for i in 1:length(flat_array)
-        ho = qu2ho(flat_array[i])
-        rotationmatrices = vcat(rotationmatrices, ho)
-    end
-    return reshape(rotationmatrices, ((3)..., sizes...))
+    return as(qu2ho, (3,), rotations)
+end
+
+function as_rodriguesfrank(rotations ::rotation)
+    return as_rodriguesfrank([rotations])
 end
 
 function as_rodriguesfrank(rotations ::Array{rotation})
-    sizes = size(rotations)
-    flat_array = vec(rotations)
-    rotationmatrices = Float32[]
-    for i in 1:length(flat_array)
-        ro = qu2ro(flat_array[i])
-        rotationmatrices = vcat(rotationmatrices, ro)
-    end
-    return reshape(rotationmatrices, ((4)..., sizes...))
+    return as(qu2ro, (4, ), rotations)
 end
 
 """
