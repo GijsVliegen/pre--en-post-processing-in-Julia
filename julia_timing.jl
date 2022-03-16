@@ -11,7 +11,7 @@ function operationEu(a)
     c = from_Euler_angles(b)
 end
 
-n = 1000
+n = 10000
 a = from_random(n, n, Float64)
-@btime operationEu($a)
+@btime operationOm($a)
 

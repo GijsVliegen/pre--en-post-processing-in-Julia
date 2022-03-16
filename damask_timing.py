@@ -4,7 +4,7 @@ processST = time.process_time()
 
 #timeit
 
-a = damask.Rotation.from_random(50000)
+a = damask.Rotation.from_random(10000)
 b = a.as_Euler_angles()
 c = damask.Rotation.from_Euler_angles(b)
 
