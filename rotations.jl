@@ -30,6 +30,13 @@ struct rotation
     k
 end
 
+function tupleSize(tuple)
+    total = 1
+    for i in tuple
+        total *= i
+    end
+    return total
+end
 function normalize(rot ::rotation)
     abs_val = sqrt(rot.angle^2 + rot.i^2 + rot.j^2 + rot.k^2)
     #return multiply(rot, abs_val)
@@ -369,6 +376,7 @@ Initialize from rotation matrix.
 
         Rotation matrix with det(R) = 1, R.T ∙ R = I.
 """
+
 function from_matrix(array, degrees = false)
     sizes = size(array)
     flat_array = vec(array)
@@ -472,11 +480,7 @@ end
 Construeert een array van random rotaties, met gegeven dimensies
 """
 function from_random(n, sizes = n, type = Float64) ::Array{rotation}
-    total = 1
-    for i in sizes
-        total *= i
-    end
-    if (n != total)
+    if (n != tupleSize(sizes))
         print("invalid dimensions")
     end
     rotations = rotation[]
@@ -506,17 +510,16 @@ function as_axis_angle(rotations ::Array{rotation}, degrees = false, pair = fals
 end
 
 function as_matrix(rotation ::rotation) #nodig als er maar een element is
-    return qu2om(rotation)
+    return reshape(qu2om(rotation), (3,3))
 end
 
 function as_matrix(rotations ::Array{rotation})
     sizes = size(rotations)
     flat_array = vec(rotations)
-    rotationmatrices = Float32[]
+    rotationmatrices = Array{Float64}(undef, tupleSize(((3, 3)..., sizes...)))
     for i in 1:length(flat_array)
         om = qu2om(flat_array[i])
-        om_vec = vec(om)
-        rotationmatrices = vcat(rotationmatrices, om_vec)
+        rotationmatrices[i*9-8:i*9] = om
     end
     return reshape(rotationmatrices, ((3,3)..., sizes...))
 end
@@ -533,7 +536,7 @@ function as_euler_angle(rotations ::Array{rotation})
         eu = qu2eu(flat_array[i])
         rotationmatrices = vcat(rotationmatrices, eu)
     end
-    return reshape(rotationmatrices, ((4)..., sizes...))
+    return reshape(rotationmatrices, ((3)..., sizes...))
 end
 
 function as_homochoric(rotations ::Array{rotation})
