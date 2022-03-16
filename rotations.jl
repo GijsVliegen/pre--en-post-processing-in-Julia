@@ -522,13 +522,13 @@ function as_axis_angle(rotation ::rotation)
 end
 
 function as_axis_angle(rotations ::Array{rotation}, degrees = false, pair = false)
-    length = 4
+    l = 4
     sizes = size(rotations)
     flat_array = vec(rotations)
-    result = Array{Float64}(undef, tupleSize(sizes)*length)
+    result = Array{Float64}(undef, tupleSize(sizes)*l)
     for i in 1:length(flat_array)
         ax = qu2ax(flat_array[i])
-        result[i*length-length+1:i*length] = ax
+        result[i*l-l+1:i*l] = ax
     end
     return reshape(result, ((4)..., sizes...))
 end

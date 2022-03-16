@@ -7,9 +7,8 @@ quaternions = from_random(N)
 
 @testset "rotations.jl" begin
 
-    # conversion between euler angle and quaternion
+    # conversion between quaternion and euler angle
     @test begin
-        result = true
         euler = as_euler_angle(quaternions)
         quat = from_euler_angle(euler)
         isClose(quaternions, quat, 10^(-13), 10^(-13))
@@ -17,11 +16,32 @@ quaternions = from_random(N)
 
     # conversion between quaternion and axis angle
     @test begin
-        result = true
         axis = as_axis_angle(quaternions)
         quat = from_axis_angle(axis)
         isClose(quaternions, quat, 10^(-13), 10^(-13))
     end
+
+    # conversion between quaternion and rodrigues frank
+    @test begin
+        rodr = as_rodriguesfrank(quaternions)
+        quat = from_rodriguesfrank(rodr)
+        isClose(quaternions, quat, 10^(-13), 10^(-13))
+    end
+
+    # conversion between quaternion and homochoric
+    @test begin
+        homo = as_homochoric(quaternions)
+        quat = from_homochoric(homo)
+        isClose(quaternions, quat, 10^(-13), 10^(-13))
+    end
+
+    # conversion between quaternion and rotation matrix
+    @test begin
+        matr = as_matrix(quaternions)
+        quat = from_matrix(matr)
+        isClose(quaternions, quat, 10^(-13), 10^(-13))
+    end
+
 end
 
 
