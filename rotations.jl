@@ -13,7 +13,7 @@ P = 1
 
     row major and column major
 
-    ambiguiteit bij quaternion: als angle/omega 0 is, 
+    ambiguiteit bij quaternion: als angle/omega 0 is,
 """
 
 #om documentatie te schrijven
@@ -291,7 +291,7 @@ Initialize from Bungle Euler angles.
 
         Euler angles are given in degrees. Defaults to False.
 """
-function from_Euler_angles(array, degrees = false)
+function from_euler_angle(array, degrees = false)
     sizes = size(array)
     flat_array = vec(array)
     rotations = rotation[]
@@ -396,7 +396,7 @@ function from_matrix(array, degrees = false)
     return reshape(rotations, sizes[3:length(sizes)])
 end
 
-function from_RodriguesFrank(array)
+function from_rodriguesfrank(array)
     sizes = size(array)
     flat_array = vec(array)
     rotations = rotation[]
@@ -431,7 +431,7 @@ end
 #Rotate a vector
 function apply(rot ::rotation, vector ::Array{<:Number, 1})
     qvector = rotation(vector[1], vector[2], vector[3], 0)
-    result = rot*qvector*(-rot)
+    result = rot*qvector*(inv(rot))
     return [result.i, result.j, result.k]
 end
 
@@ -465,7 +465,7 @@ function Base.:*(f ::rotation, s ::rotation) ::rotation
     return rotation(angle, i, j, k)
 end
 
-function Base.:-(rot ::rotation)
+function inv(rot ::rotation)
     return rotation(rot.angle, -rot.i, -rot.j, -rot.k)
 end
 
@@ -550,7 +550,7 @@ function as_homochoric(rotations ::Array{rotation})
     return reshape(rotationmatrices, ((3)..., sizes...))
 end
 
-function as_RodriguezFrank(rotations ::Array{rotation})
+function as_rodriguesfrank(rotations ::Array{rotation})
     sizes = size(rotations)
     flat_array = vec(rotations)
     rotationmatrices = Float32[]
