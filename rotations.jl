@@ -25,7 +25,7 @@ P = 1
 
 struct rotation
     #eigenlijk gewoon een quaternion
-    angle #change to omega
+    ω
     i
     j
     k
@@ -39,17 +39,17 @@ function tupleSize(tuple)
     return total
 end
 function normalize(rot ::rotation)
-    abs_val = sqrt(rot.angle^2 + rot.i^2 + rot.j^2 + rot.k^2)
+    abs_val = sqrt(rot.ω^2 + rot.i^2 + rot.j^2 + rot.k^2)
     #return multiply(rot, abs_val)
-    return rotation(rot.angle/abs_val, rot.i/abs_val, rot.j/abs_val, rot.k/abs_val)
+    return rotation(rot.ω/abs_val, rot.i/abs_val, rot.j/abs_val, rot.k/abs_val)
 end
 
 function getComponents(rot ::rotation)
-    return [rot.angle, rot.i, rot.j, rot.k]
+    return [rot.ω, rot.i, rot.j, rot.k]
 end
 
 function Base.:copy(rot ::rotation)
-    return rotation(rot.angle, rot.i, rot.j, rot.k)
+    return rotation(rot.ω, rot.i, rot.j, rot.k)
 
 end
 #in tegenstelling tot in damask wordt er niet rekening gehouden met NaN values
@@ -185,7 +185,7 @@ end
 
 function qu2eu(rotation ::rotation)
     #moet unit quaternion zijn
-    q0 = rotation.angle
+    q0 = rotation.ω
     q1 = rotation.i
     q2 = rotation.j
     q3 = rotation.k
@@ -205,7 +205,7 @@ end
 function qu2om(rot ::rotation)
     #moet unit quaternion zijn
     #geeft passieve interpretatie
-    q0 = rot.angle
+    q0 = rot.ω
     q1 = rot.i
     q2 = rot.j
     q3 = rot.k
@@ -217,7 +217,7 @@ function qu2om(rot ::rotation)
 end
 
 function qu2ax(rotation ::rotation)
-    q0 = rotation.angle
+    q0 = rotation.ω
     q1 = rotation.i
     q2 = rotation.j
     q3 = rotation.k
@@ -234,7 +234,7 @@ function qu2ax(rotation ::rotation)
 end
 
 function qu2ro(rotation ::rotation)
-    q0 = rotation.angle
+    q0 = rotation.ω
     q1 = rotation.i
     q2 = rotation.j
     q3 = rotation.k
@@ -247,7 +247,7 @@ function qu2ro(rotation ::rotation)
 end
 
 function qu2ho(rotation ::rotation)
-    q0 = rotation.angle
+    q0 = rotation.ω
     q1 = rotation.i
     q2 = rotation.j
     q3 = rotation.k
@@ -264,6 +264,90 @@ end
 #omega, i, j, k
 function qu2qu(rot) ::rotation
     return rotation(rot[1], rot[2], rot[3], rot[4])
+end
+
+
+#Rotate a vector
+function apply(rot ::rotation, vector ::Array{<:Number, 1})
+    qvector = rotation(vector[1], vector[2], vector[3], 0)
+    result = rot*qvector*(inv(rot))
+    return [result.i, result.j, result.k]
+end
+
+#Rotate a matrix
+function apply(rot ::rotation, vector ::Array{<:Number, 2})
+    R = as_matrix(rot)
+    return R*vector
+end
+
+function apply(rot ::rotation, vector ::Array{<:Number, 4})
+    R = as_matrix(rot)
+    result = zeros(3,3,3,3)
+    @einsum result[i,j,k,l] += R[i,m]*R[j,n]*R[k,o]*R[l,p]*vector[m,n,o,p]
+    return result
+end
+
+function Base.:*(r ::rotation, nr ::Number) ::rotation
+    return rotation(r.ω * nr, r.i * nr, r.j * nr, r.k * nr)
+end
+
+function Base.:*(nr ::Number, r ::rotation) ::rotation
+    return r*nr
+end
+
+#niet commutatief
+function Base.:*(f ::rotation, s ::rotation) ::rotation
+    ω = f.ω*s.ω - (f.i * s.i + f.j * s.j + f.k * s.k)
+    i = (f.j * s.k - f.k * s.j) + f.ω * s.i + s.ω * f.i
+    j = (f.k * s.i - f.i * s.k) + f.ω * s.j + s.ω * f.j
+    k = (f.i * s.j - f.j * s.i) + f.ω * s.k + s.ω * f.k
+    return rotation(ω, i, j, k)
+end
+
+function Base.:inv(rot ::rotation)
+    return rotation(rot.ω, -rot.i, -rot.j, -rot.k)
+end
+
+function from_random()
+    return from_random(1)[1]
+end
+"""
+    from_random(n, sizes = n, type) ::Array{rotation}
+
+    type = Float32, Float64...
+
+Construeert een array van random rotaties, met gegeven dimensies
+"""
+function from_random(n, sizes = n, type = Float64) ::Array{rotation}
+    if (n != tupleSize(sizes))
+        print("invalid dimensions")
+    end
+    rotations = rotation[]
+    for i = 1:n
+        u1 = rand(type)
+        u2 = rand(type)
+        u3 = rand(type)
+        h = rotation(sqrt(1-u1)*sin(pi*u2*2), sqrt(1-u1)*cos(pi*u2*2), sqrt(u1)*sin(pi*u3*2), sqrt(u1)*cos(pi*u3*2))
+        push!(rotations, copy(h))
+    end
+    return reshape(rotations, sizes)
+end
+
+
+
+function from(x2qu::Function, nrOfDimension ::Int, l ::Int, array)
+    sizes = size(array) #is een tupel, in de vorm van (4, ...)
+    flat_array = vec(array)
+    result = rotation[]
+    for i in 1:l:length(flat_array)
+        qu = x2qu(flat_array[i:i+l-1])
+        push!(result, qu)
+    end
+    reshape(result, sizes[nrOfDimension+1:length(sizes)])
+end
+
+function from_quaternion(array ::Array{<:Number, 1})
+    return qu2qu(array)
 end
 
 #moeten deze in positive real hemisphere zijn? en wat is dan de logica hierachter?
@@ -289,20 +373,12 @@ julia> from_quaternion(reshape([(1:16)...], 4, 2, 2))
  rotation(5, 6, 7, 8)  rotation(13, 14, 15, 16)
 ```
 """
-
-function from(x2qu::Function, nrOfDimension ::Int, l ::Int, array)
-    sizes = size(array) #is een tupel, in de vorm van (4, ...)
-    flat_array = vec(array)
-    result = rotation[]
-    for i in 1:l:length(flat_array)
-        qu = x2qu(flat_array[i:i+l-1])
-        push!(result, qu)
-    end
-    reshape(result, sizes[nrOfDimension+1:length(sizes)])
+function from_quaternion(array ::Array{<:Number})
+    return from(qu2qu, 1, 4, array)
 end
 
-function from_quaternion(array) #greek letters?
-    return from(qu2qu, 1, 4, array)
+function from_euler_angle(array ::Array{<:Number, 1})
+    return eu2qu(array)
 end
 
 #deze voorwaarden worden opnieuw nergens gechecked, misschien dit checken in de functie eu2qu?
@@ -320,10 +396,9 @@ Initialize from Bungle Euler angles.
 
         Euler angles are given in degrees. Defaults to False.
 """
-function from_euler_angle(array)
+function from_euler_angle(array ::Array{<:Number})
     return from(eu2qu, 1, 3, array)
 end
-
 
 function from_axis_angle(array ::Array{<:Number, 1})
     return ax2qu(array)
@@ -344,7 +419,7 @@ Initialize from Axis angle pair.
 
         Euler angles are given in degrees. Defaults to False.
 """
-function from_axis_angle(array ::Array{<:Number, 1}, degrees = false)
+function from_axis_angle(array ::Array{<:Number}, degrees = false)
     return from(ax2qu, 1, 4, array)
 end
 
@@ -387,7 +462,7 @@ function from_matrix(array ::Array{<:Number, 2})
     return om2qu(array)
 end
 
-function from_matrix(array ::Array{<:Number, 3}, degrees = false)
+function from_matrix(array ::Array{<:Number}, degrees = false)
     return from(om2qu, 2, 9, array)
 end
 
@@ -395,7 +470,7 @@ function from_rodriguesfrank(array ::Array{<:Number, 1})
     return ro2qu(array)
 end
 
-function from_rodriguesfrank(array ::Array{<:Number, 2})
+function from_rodriguesfrank(array ::Array{<:Number})
     from(ro2qu, 1, 4, array)
 end
 
@@ -403,74 +478,8 @@ function from_homochoric(array ::Array{<:Number, 1})
     return ho2qu(array)
 end
 
-function from_homochoric(array ::Array{<:Number, 2})
+function from_homochoric(array ::Array{<:Number})
     from(ho2qu, 1, 3, array)
-end
-
-#Rotate a vector
-function apply(rot ::rotation, vector ::Array{<:Number, 1})
-    qvector = rotation(vector[1], vector[2], vector[3], 0)
-    result = rot*qvector*(inv(rot))
-    return [result.i, result.j, result.k]
-end
-
-#Rotate a matrix
-function apply(rot ::rotation, vector ::Array{<:Number, 2})
-    R = as_matrix(rot)
-    return R*vector
-end
-
-function apply(rot ::rotation, vector ::Array{<:Number, 4})
-    R = as_matrix(rot)
-    result = zeros(3,3,3,3)
-    @einsum result[i,j,k,l] += R[i,m]*R[j,n]*R[k,o]*R[l,p]*vector[m,n,o,p]
-    return result
-end
-
-function Base.:*(r ::rotation, nr ::Number) ::rotation
-    return rotation(r.angle * nr, r.i * nr, r.j * nr, r.k * nr)
-end
-
-function Base.:*(nr ::Number, r ::rotation) ::rotation
-    return r*nr
-end
-
-#niet commutatief
-function Base.:*(f ::rotation, s ::rotation) ::rotation
-    angle = f.angle*s.angle - (f.i * s.i + f.j * s.j + f.k * s.k)
-    i = (f.j * s.k - f.k * s.j) + f.angle * s.i + s.angle * f.i
-    j = (f.k * s.i - f.i * s.k) + f.angle * s.j + s.angle * f.j
-    k = (f.i * s.j - f.j * s.i) + f.angle * s.k + s.angle * f.k
-    return rotation(angle, i, j, k)
-end
-
-function Base.:inv(rot ::rotation)
-    return rotation(rot.angle, -rot.i, -rot.j, -rot.k)
-end
-
-function from_random()
-    return from_random(1)[1]
-end
-"""
-    from_random(n, sizes = n, type) ::Array{rotation}
-
-    type = Float32, Float64...
-
-Construeert een array van random rotaties, met gegeven dimensies
-"""
-function from_random(n, sizes = n, type = Float64) ::Array{rotation}
-    if (n != tupleSize(sizes))
-        print("invalid dimensions")
-    end
-    rotations = rotation[]
-    for i = 1:n
-        u1 = rand(type)
-        u2 = rand(type)
-        u3 = rand(type)
-        h = rotation(sqrt(1-u1)*sin(pi*u2*2), sqrt(1-u1)*cos(pi*u2*2), sqrt(u1)*sin(pi*u3*2), sqrt(u1)*cos(pi*u3*2))
-        push!(rotations, copy(h))
-    end
-    return reshape(rotations, sizes)
 end
 
 function as(qu2x::Function, xSize ::Tuple, rotations ::Array{rotation})
