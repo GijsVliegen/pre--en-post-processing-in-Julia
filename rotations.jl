@@ -6,12 +6,9 @@ P = 1
 """TODO
     -voorwaarden checken in sommige omzetfuncties
     -documentatie schrijven
-    -tests schrijven
     -from_basis() en as_basis() schrijven
     -extra argumenten toevoegen zoals degrees, pair...
     -efficiëntie vergelijken met python-implementatie
-
-    row major and column major
 
     ambiguiteit bij quaternion: als angle/omega 0 is,
 """
@@ -24,7 +21,7 @@ P = 1
 
 struct rotation
     #eigenlijk gewoon een quaternion
-    angle #change to omega
+    ω #change to omega
     i
     j
     k
@@ -37,18 +34,19 @@ function tupleSize(tuple)
     end
     return total
 end
+
 function normalize(rot ::rotation)
-    abs_val = sqrt(rot.angle^2 + rot.i^2 + rot.j^2 + rot.k^2)
+    abs_val = sqrt(rot.ω^2 + rot.i^2 + rot.j^2 + rot.k^2)
     #return multiply(rot, abs_val)
-    return rotation(rot.i/abs_val, rot.j/abs_val, rot.k/abs_val, rot.angle/abs_val)
+    return rotation(rot.ω/abs_val, rot.i/abs_val, rot.j/abs_val, rot.k/abs_val)
 end
 
 function getComponents(rot ::rotation)
-    return [rot.angle, rot.i, rot.j, rot.k]
+    return [rot.ω, rot.i, rot.j, rot.k]
 end
 
 function Base.:copy(rot ::rotation)
-    return rotation(rot.angle, rot.i, rot.j, rot.k)
+    return rotation(rot.ω, rot.i, rot.j, rot.k)
 
 end
 #in tegenstelling tot in damask wordt er niet rekening gehouden met NaN values
@@ -93,54 +91,54 @@ end
 #Euler angle heeft ZXZ structuur
 #input: [phi1, PHI, phi2]
 function eu2qu(rot) ::rotation
-    phi1 = rot[1]
-    PHI = rot[2]
-    phi2 = rot[3]
-    sigma = (phi1 + phi2)/2.0
-    delta = (phi1 - phi2)/2.0
-    c = cos(PHI/2)
-    s = sin(PHI/2)
-    q0 = c*cos(sigma)
-    if q0 > 0
-        return rotation(q0, -P*s*cos(delta), -P*s*sin(delta), -P*c*sin(sigma))
+    ϕ1 = rot[1]
+    Φ = rot[2]
+    ϕ2 = rot[3]
+    σ = (ϕ1 + ϕ2)/2.0
+    δ = (ϕ1 - ϕ2)/2.0
+    c = cos(Φ/2)
+    s = sin(Φ/2)
+    q₀ = c*cos(σ)
+    if q₀ > 0
+        return rotation(q₀, -P*s*cos(δ), -P*s*sin(δ), -P*c*sin(σ))
     else
-        return rotation(-q0, P*s*cos(delta), P*s*sin(delta), P*c*sin(sigma))
+        return rotation(-q₀, P*s*cos(δ), P*s*sin(δ), P*c*sin(σ))
     end
 end
 
-function om2qu(a) ::rotation
-    q0 = 1/2f0*sqrt(1 + a[1, 1] + a[2, 2] + a[3,3])
-    q1 = P/2f0*sqrt(1 + a[1, 1] - a[2, 2] - a[3,3])
-    q2 = P/2f0*sqrt(1 - a[1, 1] + a[2, 2] - a[3,3])
-    q3 = P/2f0*sqrt(1 - a[1, 1] - a[2, 2] + a[3,3])
-    if (a[3,2] < a[2, 3])
-        q1 = -q1
+function om2qu(α) ::rotation
+    q₀ = 1/2f0*sqrt(1 + α[1, 1] + α[2, 2] + α[3,3])
+    q₁ = P/2f0*sqrt(1 + α[1, 1] - α[2, 2] - α[3,3])
+    q₂ = P/2f0*sqrt(1 - α[1, 1] + α[2, 2] - α[3,3])
+    q₃ = P/2f0*sqrt(1 - α[1, 1] - α[2, 2] + α[3,3])
+    if (α[3,2] < α[2, 3])
+        q₁ = -q₁
     end
-    if (a[1, 3] < a[3, 1])
-        q2 = -q2
+    if (α[1, 3] < α[3, 1])
+        q₂ = -q₂
     end
-    if (a[2, 1] < a[1, 2])
-        q3 = -q3
+    if (α[2, 1] < α[1, 2])
+        q₃ = -q₃
     end
-    #weet niet waarom deze volgorde werkt, maar het werkt
-    return normalize(rotation(q3, q0, q1, q2))
+    return normalize(rotation(q₀, q₁, q₂, q₃))
 end
 
 #input = [n_0, n_1, n_2, w]
 function ax2qu(rot) ::rotation
-    n = rot[1:3]
-    n = n*sin(rot[4]/2)
-    return rotation(cos(rot[4]/2), n[1], n[2], n[3])
+    n̂ = rot[1:3]
+    ω = rot[4]
+    n = n̂*sin(ω/2)
+    return rotation(cos(ω/2), n[1], n[2], n[3])
 end
 
 #input = [n_0, n_1, n_2, tan(ω/2)]
 #om de een of andere rede klopt dit niet, god mag weten waarom
 function ro2ax(rotation)
     n = rotation[1:3]
-    rho = norm(n)
+    ρ = norm(n)
     #als ik de paper gebruik zou het 2*atan(rho) moeten zijn,
     #dit werkt echter niet, 2*atan(rotation[4]) werkt wel.
-    return vcat(n/rho, [2*atan(rotation[4])])
+    return vcat(n/ρ, [2*atan(rotation[4])])
 end
 
 function ro2qu(rotation)
@@ -150,40 +148,35 @@ end
 
 #deze functie is er enkel voor debugging
 function ax2ro(rotation)
-    #wat als omega = pi???
-    n = rotation[1:3]
+    #wat als omega = π???
+    n̂ = rotation[1:3]
     f = tan(rotation[4]/2)
-    return vcat(n, [f])
+    return vcat(n̂, [f])
 end
 
-gamma2 = [1.0000000000018805, -0.500000000219485, -0.024999992127593, -0.003928701544781,
-    -0.000815270153545, -0.000200950042612, -0.000023979867761, -0.000082028689266,
-    0.000124487150421, -0.000174911421482, 0.000170348193414, -0.000120620650041,
-    0.000059719705869, -0.000019807567240, 0.000003953714684, -0.000000365550014]
+γ = [+1.0000000000018852,      -0.5000000002194847,
+-0.024999992127593126,    -0.003928701544781374,
+-0.0008152701535450438,   -0.0002009500426119712,
+-0.00002397986776071756,  -0.00008202868926605841,
++0.00012448715042090092,  -0.0001749114214822577,
++0.0001703481934140054,   -0.00012062065004116828,
++0.000059719705868660826, -0.00001980756723965647,
++0.000003953714684212874, -0.00000036555001439719544]
 #[n_0, n_1, n_2]
 function ho2ax(rotation)
-
-    gamma = [+1.0000000000018852,      -0.5000000002194847,
-    -0.024999992127593126,    -0.003928701544781374,
-    -0.0008152701535450438,   -0.0002009500426119712,
-    -0.00002397986776071756,  -0.00008202868926605841,
-    +0.00012448715042090092,  -0.0001749114214822577,
-    +0.0001703481934140054,   -0.00012062065004116828,
-    +0.000059719705868660826, -0.00001980756723965647,
-    +0.000003953714684212874, -0.00000036555001439719544]
     small_h = norm(rotation)
-    small_h_squared = small_h^2
-    sh_copy = 1
+    small_h²  = small_h^2
+    sh²_copy = 1
     if small_h == 0
         return [0, 0, 1, 0]
     end
-    h_prime = rotation/small_h
+    h′ = rotation/small_h
     s = 0
     for i in 1:16
-        s += gamma[i]*sh_copy
-        sh_copy *= small_h_squared
+        s += γ[i]*sh²_copy
+        sh²_copy *= small_h²
     end
-    return vcat(h_prime, [2*acos(s)])
+    return vcat(h′, [2*acos(s)])
 end
 
 function ho2qu(rotation) #::rotation
@@ -191,82 +184,82 @@ function ho2qu(rotation) #::rotation
     return ax2qu(ax) #als ik rotation laat staan, komt er een error lol
 end
 
-function qu2eu(rotation ::rotation)
+function qu2eu(rot ::rotation)
     #moet unit quaternion zijn
-    q0 = rotation.angle
-    q1 = rotation.i
-    q2 = rotation.j
-    q3 = rotation.k
-    q03 = q0^2 + q3^2
-    q12 = q1^2 + q2^2
-    x = sqrt(q03 * q12)
-    if (x == 0 && q12 == 0)
-        return [atan(-2*P*q0*q3, q0^2 - q3^2), 0, 0]
-    elseif (x == 0 && q03 == 0)
-        return [atan(2*q1*q2, q1^2 - q2^2), pi, 0]
-    else #als x != 0
-        return [atan((q1*q3 - P*q0*q2)/x,(-P*q0*q1 - q2*q3)/x),
-            atan(2*x, q03-q12), atan((P*q0*q2 + q1*q3)/x, (q2*q3 - P*q0*q1)/x)]
+    q₀ = rot.ω
+    q₁ = rot.i
+    q₂ = rot.j
+    q₃ = rot.k
+    q₀₃ = q₀^2 + q₃^2
+    q₁₂ = q₁^2 + q₂^2
+    χ = sqrt(q₀₃ * q₁₂)
+    if (χ == 0 && q₁₂ == 0)
+        return [atan(-2*P*q₀*q₃, q₀^2 - q₃^2), 0, 0]
+    elseif (χ == 0 && q₀₃ == 0)
+        return [atan(2*q₁*q₂, q₁^2 - q₂^2), π, 0]
+    else #als χ != 0
+        return [atan((q₁*q₃ - P*q₀*q₂)/χ,(-P*q₀*q₁ - q₂*q₃)/χ),
+            atan(2*χ, q₀₃-q₁₂), atan((P*q₀*q₂ + q₁*q₃)/χ, (q₂*q₃ - P*q₀*q₁)/χ)]
     end
 end
 
 function qu2om(rot ::rotation)
     #moet unit quaternion zijn
     #geeft passieve interpretatie
-    q0 = rot.angle
-    q1 = rot.i
-    q2 = rot.j
-    q3 = rot.k
-    q = q0^2 - (q1^2 + q2^2 + q3^2)
-    a = [q+2*q1^2 2*(q1*q2-P*q0*q3) 2*(q1*q3+P*q0*q2);
-        2(q1*q2+P*q0*q3) q+2*q2^2 2*(q2*q3-P*q0*q1);
-        2*(q1*q3-P*q0*q2) 2*(q2*q3+P*q0*q1) q+2*q3^2]
-    return a
+    q₀ = rot.ω
+    q₁ = rot.i
+    q₂ = rot.j
+    q₃ = rot.k
+    q̄ = q₀^2 - (q₁^2 + q₂^2 + q₃^2)
+    α = [q̄+2*q₁^2 2*(q₁*q₂-P*q₀*q₃) 2*(q₁*q₃+P*q₀*q₂);
+        2(q₁*q₂+P*q₀*q₃) q̄+2*q₂^2 2*(q₂*q₃-P*q₀*q₁);
+        2*(q₁*q₃-P*q₀*q₂) 2*(q₂*q₃+P*q₀*q₁) q̄+2*q₃^2]
+    return α
 end
 
-function qu2ax(rotation ::rotation)
-    q0 = rotation.angle
-    q1 = rotation.i
-    q2 = rotation.j
-    q3 = rotation.k
-    w = 2*acos(q0)
-    if (w == 0)
+function qu2ax(rot ::rotation)
+    q₀ = rot.ω
+    q₁ = rot.i
+    q₂ = rot.j
+    q₃ = rot.k
+    ω = 2*acos(q₀)
+    if (ω == 0)
         #[n_0, n_1, n_2, w]
         return [0, 0, 1, 0]
     end
-    if (q0 == 0)
-        return [q1, q2, q3, pi]
+    if (q₀ == 0)
+        return [q₁, q₂, q₃, π]
     end
-    s = sign(q0)/sqrt(q1^2 + q2^2 + q3^2)
-    return [s*q1, s*q2, s*q3, w]
+    s = sign(q₀)/sqrt(q₁^2 + q₂^2 + q₃^2)
+    return [s*q₁, s*q₂, s*q₃, ω]
 end
 
 function qu2ro(rotation ::rotation)
-    q0 = rotation.angle
-    q1 = rotation.i
-    q2 = rotation.j
-    q3 = rotation.k
-    s = sqrt(q1^2 + q2^2 + q3^2)
-    t = tan(acos(q0))
+    q₀ = rotation.ω
+    q₁ = rotation.i
+    q₂ = rotation.j
+    q₃ = rotation.k
+    s = sqrt(q₁^2 + q₂^2 + q₃^2)
+    t = tan(acos(q₀))
     #oppassen als s klein wordt!!!
     #rodriguesFrank opslaan als vector van 4 elementen
     #[n_0, n_1, n_2, t]
-    return [q1/s, q2/s, q3/s, t]
+    return [q₁/s, q₂/s, q₃/s, t]
 end
 
 function qu2ho(rotation ::rotation)
-    q0 = rotation.angle
-    q1 = rotation.i
-    q2 = rotation.j
-    q3 = rotation.k
-    w = 2*acos(q0)
-    if w == 0
+    q₀ = rotation.ω
+    q₁ = rotation.i
+    q₂ = rotation.j
+    q₃ = rotation.k
+    ω = 2*acos(q₀)
+    if ω == 0
         return [0, 0, 0]
     end
-    s = 1/sqrt(q1^2 + q2^2 + q3^2)
-    n = [s*q1, s*q2, s*q3]
-    f = 3(w-sin(w))/4
-    return n*f^(1/3)
+    s = 1/sqrt(q₁^2 + q₂^2 + q₃^2)
+    n̂ = [s*q₁, s*q₂, s*q₃]
+    f = 3(ω-sin(ω))/4
+    return n̂*f^(1/3)
 end
 
 #moeten deze in positive real hemisphere zijn? en wat is dan de logica hierachter?
@@ -282,7 +275,7 @@ Initialize from quaternion.
 # Arguments
    - `array ::Array`: shape (4, ...)
 
-        Unit quaternion (q0, q1, q2, q3) in positive real hemisphere, i.e. ǀqǀ = 1, q_0 ≥ 0.
+        Unit quaternion (q₀, q₁, q₂, q₃) in positive real hemisphere, i.e. ǀqǀ = 1, q_0 ≥ 0.
 
 # Examples
 ```julia-repl
@@ -325,7 +318,7 @@ function from_euler_angle(array, degrees = false)
     flat_array = vec(array)
     rotations = rotation[]
     if degrees
-        flat_array = flat_array/(2*pi)
+        flat_array = flat_array/(2*π)
     end
     if (length(flat_array) == 3) #als er maar een rotatie is, geen array teruggeven
         return eu2qu(flat_array)
@@ -359,7 +352,7 @@ function from_axis_angle(array, degrees = false)
     flat_array = vec(array)
     rotations = rotation[]
     if degrees
-        flat_array = flat_array/(2*pi)
+        flat_array = flat_array/(2*π)
     end
     if (length(flat_array) == 4) #als er maar een rotatie is, geen array teruggeven
         return ax2qu(flat_array)
@@ -394,7 +387,7 @@ function from_basis(basis, orthonormal = true, reciprocal = false)
     """# TODO check dimensions
     om = copy(basis)
     if reciprocal
-        om = LinearAlgebra.inv!(LinearAlgebra.transpose!(om)/pi)
+        om = LinearAlgebra.inv!(LinearAlgebra.transpose!(om)/π)
         orthonormal = false
     end
     if !orthonormal
@@ -421,7 +414,7 @@ function from_matrix(array, degrees = false)
     flat_array = vec(array)
     rotations = rotation[]
     if degrees
-        flat_array = flat_array/(2*pi)
+        flat_array = flat_array/(2*π)
     end
     if (length(flat_array) == 9) #als er maar een rotatie is, geen array teruggeven
         return om2qu(array)
@@ -491,7 +484,7 @@ function apply(rot ::rotation, vector ::Array{<:Number, 4})
 end
 
 function Base.:*(r ::rotation, nr ::Number) ::rotation
-    return rotation(r.angle * nr, r.i * nr, r.j * nr, r.k * nr)
+    return rotation(r.ω * nr, r.i * nr, r.j * nr, r.k * nr)
 end
 
 function Base.:*(nr ::Number, r ::rotation) ::rotation
@@ -500,15 +493,15 @@ end
 
 #niet commutatief
 function Base.:*(f ::rotation, s ::rotation) ::rotation
-    angle = f.angle*s.angle - (f.i * s.i + f.j * s.j + f.k * s.k)
-    i = (f.j * s.k - f.k * s.j) + f.angle * s.i + s.angle * f.i
-    j = (f.k * s.i - f.i * s.k) + f.angle * s.j + s.angle * f.j
-    k = (f.i * s.j - f.j * s.i) + f.angle * s.k + s.angle * f.k
+    angle = f.ω*s.ω - (f.i * s.i + f.j * s.j + f.k * s.k)
+    i = (f.j * s.k - f.k * s.j) + f.ω * s.i + s.ω * f.i
+    j = (f.k * s.i - f.i * s.k) + f.ω * s.j + s.ω * f.j
+    k = (f.i * s.j - f.j * s.i) + f.ω * s.k + s.ω * f.k
     return rotation(angle, i, j, k)
 end
 
 function Base.:inv(rot ::rotation)
-    return rotation(rot.angle, -rot.i, -rot.j, -rot.k)
+    return rotation(rot.ω, -rot.i, -rot.j, -rot.k)
 end
 
 function from_random()
@@ -530,8 +523,8 @@ function from_random(n, sizes = n, type = Float64) ::Array{rotation}
         u1 = rand(type)
         u2 = rand(type)
         u3 = rand(type)
-        h = rotation(sqrt(1-u1)*sin(pi*u2*2), sqrt(1-u1)*cos(pi*u2*2), sqrt(u1)*sin(pi*u3*2), sqrt(u1)*cos(pi*u3*2))
-        if (h.angle < 0)
+        h = rotation(sqrt(1-u1)*sin(π*u2*2), sqrt(1-u1)*cos(π*u2*2), sqrt(u1)*sin(π*u3*2), sqrt(u1)*cos(π*u3*2))
+        if (h.ω < 0)
             h = h*-1
         end
         push!(rotations, copy(h))
@@ -613,8 +606,8 @@ function eu2ax(rotation ::eulerAngle)::axisAnglePair
     delta = (rotation.phi1 - rotation.phi2)/2.0
     tau = sqrt(t^2 + sin(sigma)^2)
     alpha = 2*atan(tau/(cos(sigma)))
-    if (alpha > pi)
-        alpha = 2*pi - alpha
+    if (alpha > π)
+        alpha = 2*π - alpha
     end
     return axisAnglePair([P/t*cos(delta) P/t*sin(delta) P/t*sin(sigma)], a)
 end
@@ -637,7 +630,7 @@ function om2eu(rotation ::rotationMatrix)
         return eulerAngle(phi1, PHI, phi2)
     else
         phi1 = atan(rotation.matrix[1, 2], rotation.matrix[1, 1])
-        PHI = pi/2*(1 - a_33)
+        PHI = π/2*(1 - a_33)
         return eulerAngle(phi1, PHI, 0)
     end
 end
@@ -645,9 +638,9 @@ end
 function om2ax(rotation ::rotationMatrix)
     omega = acos((tr(rotation.matrix) - 1)/2)
     #inspiratie voor de code: https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/index.htm
-    #dit algo komt niet uit de paper, die onduidelijk was, opletten voor omega = 0 of omega = pi
+    #dit algo komt niet uit de paper, die onduidelijk was, opletten voor omega = 0 of omega = π
     #omega = 0 -> x y en z zijn arbitrair
-    #omega = pi -> x y en z maken uit dus moeten berekend worden
+    #omega = π -> x y en z maken uit dus moeten berekend worden
     #handelen van singularities: https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/david.htm
 end
 
