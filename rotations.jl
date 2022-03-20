@@ -66,6 +66,7 @@ function isClose(first ::rotation, other ::rotation, rtol, atol, nanEquals = tru
 end
 
 function isClose(first ::Array{rotation, 1}, other ::Array{rotation, 1}, rtol, atol, nanEquals = true)
+    println("dit is slechts een test")
     if length(first) != length(other)
         return false
     end
@@ -73,6 +74,9 @@ function isClose(first ::Array{rotation, 1}, other ::Array{rotation, 1}, rtol, a
     for i in 1:length(first)
         if !isClose(first[i], other[i], rtol, atol, nanEquals)
             result = false
+            println("oke het is fout: de twee quaternionen zijn:")
+            println(first[i])
+            println(other[i])
             break
         end
     end
@@ -97,10 +101,10 @@ function eu2qu(rot) ::rotation
     c = cos(PHI/2)
     s = sin(PHI/2)
     q0 = c*cos(sigma)
-    if q0 < 0
-        return rotation(q0, P*s*cos(delta), P*s*sin(delta), P*c*sin(sigma))
+    if q0 > 0
+        return rotation(q0, -P*s*cos(delta), -P*s*sin(delta), -P*c*sin(sigma))
     else
-        return rotation(-q0, -P*s*cos(delta), -P*s*sin(delta), -P*c*sin(sigma))
+        return rotation(-q0, P*s*cos(delta), P*s*sin(delta), P*c*sin(sigma))
     end
 end
 
@@ -159,19 +163,25 @@ gamma2 = [1.0000000000018805, -0.500000000219485, -0.024999992127593, -0.0039287
 #[n_0, n_1, n_2]
 function ho2ax(rotation)
 
-    gamma = [1.0000000000018805, -0.500000000219485, -0.024999992127593, -0.003928701544781,
--0.000815270153545, -0.000200950042612, -0.000023979867761, -0.000082028689266,
-0.000124487150421, -0.000174911421482, 0.000170348193414, -0.000120620650041,
-0.000059719705869, -0.000019807567240, 0.000003953714684, -0.000000365550014]
+    gamma = [+1.0000000000018852,      -0.5000000002194847,
+    -0.024999992127593126,    -0.003928701544781374,
+    -0.0008152701535450438,   -0.0002009500426119712,
+    -0.00002397986776071756,  -0.00008202868926605841,
+    +0.00012448715042090092,  -0.0001749114214822577,
+    +0.0001703481934140054,   -0.00012062065004116828,
+    +0.000059719705868660826, -0.00001980756723965647,
+    +0.000003953714684212874, -0.00000036555001439719544]
     small_h = norm(rotation)
     small_h_squared = small_h^2
+    sh_copy = 1
     if small_h == 0
         return [0, 0, 1, 0]
     end
     h_prime = rotation/small_h
     s = 0
     for i in 1:16
-        s += gamma[i]*small_h_squared^(i-1)
+        s += gamma[i]*sh_copy
+        sh_copy *= small_h_squared
     end
     return vcat(h_prime, [2*acos(s)])
 end
@@ -381,7 +391,7 @@ Initialize from lattice basis vectors.
         Basis vectors are given in reciprocal (instead of real) space. Defaults to False.
 """
 function from_basis(basis, orthonormal = true, reciprocal = false)
-    # TODO check dimensions
+    """# TODO check dimensions
     om = copy(basis)
     if reciprocal
         om = LinearAlgebra.inv!(LinearAlgebra.transpose!(om)/pi)
@@ -390,7 +400,7 @@ function from_basis(basis, orthonormal = true, reciprocal = false)
     if !orthonormal
         svd = LinearAlgebra.svd!(om)
         @einsum om[i,j] = svd.U[i,j]*svd.Vt[j,l]
-    end
+    end"""
 end
 
 
@@ -521,6 +531,9 @@ function from_random(n, sizes = n, type = Float64) ::Array{rotation}
         u2 = rand(type)
         u3 = rand(type)
         h = rotation(sqrt(1-u1)*sin(pi*u2*2), sqrt(1-u1)*cos(pi*u2*2), sqrt(u1)*sin(pi*u3*2), sqrt(u1)*cos(pi*u3*2))
+        if (h.angle < 0)
+            h = h*-1
+        end
         push!(rotations, copy(h))
     end
     return reshape(rotations, sizes)
