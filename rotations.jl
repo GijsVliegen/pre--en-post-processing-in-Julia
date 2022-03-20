@@ -389,8 +389,31 @@ function from_basis(basis, orthonormal = true, reciprocal = false)
     end
     if !orthonormal
         svd = LinearAlgebra.svd!(om)
-        @einsum om[i,j] = svd.U[i,j]*svd.Vt[j,l]
+        om = svd.U*svd.Vt
     end
+    # TODO check determinant == 1
+    # TODO check orthogonality
+    return from_matrix(om)
+end
+
+"""
+    from_parallel(a,b) ::Array{rotation}
+
+    Initialize from pairs of two orthogonal lattice basis vectors.
+
+    # Arguments
+
+    - `a ::Array`: shape (3, 2, ...)
+
+        Two three-dimensional lattice vectors of first orthogonal basis.
+
+    - `b ::Array`: shape (3, 2, ...)
+
+        Corresponding three-dimensional lattice vectors of second basis.
+
+        """
+function from_parallel(a, b)
+
 end
 
 
