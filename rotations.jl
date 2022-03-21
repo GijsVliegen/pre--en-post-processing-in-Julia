@@ -282,6 +282,7 @@ function apply(rot ::rotation, vector ::Array{<:Number, 2})
     return R*vector
 end
 
+# Rotate a fourth order tensor
 function apply(rot ::rotation, vector ::Array{<:Number, 4})
     R = as_matrix(rot)
     result = zeros(3,3,3,3)
@@ -451,7 +452,7 @@ Initialize from lattice basis vectors.
         Basis vectors are given in reciprocal (instead of real) space. Defaults to False.
 """
 function from_basis(basis, orthonormal = true, reciprocal = false)
-    """# TODO check dimensions
+    # TODO check dimensions
     om = copy(basis)
     if reciprocal
         om = LinearAlgebra.inv!(LinearAlgebra.transpose!(om)/π)
@@ -459,7 +460,6 @@ function from_basis(basis, orthonormal = true, reciprocal = false)
     end
     if !orthonormal
         svd = LinearAlgebra.svd!(om)
-<<<<<<< HEAD
         om = svd.U*svd.Vt
     end
     # TODO check determinant == 1
@@ -485,10 +485,6 @@ end
         """
 function from_parallel(a, b)
 
-=======
-        @einsum om[i,j] = svd.U[i,j]*svd.Vt[j,l]
-    end"""
->>>>>>> abf3a10395fac8c638bd2fdc6b1a26d1800d3c4c
 end
 
 
