@@ -23,16 +23,33 @@ function operationRo(a)
     c = from_rodriguesfrank(b)
 end
 
-n = 200000
-a = from_random(n, n, Float64)
-println("Om:")
-@btime operationOm($a)
-println("Eu:")
-@btime operationEu($a)
-println("Ax:")
-@btime operationAx($a)
-println("Ho:")
-@btime operationHo($a)
-println("Ro:")
-@btime operationRo($a)
+function oneTest(a)
+    println("Om:")
+    @btime operationOm($a)
+    println("Eu:")
+    @btime operationEu($a)
+    println("Ax:")
+    @btime operationAx($a)
+    println("Ho:")
+    @btime operationHo($a)
+    println("Ro:")
+    @btime operationRo($a)
+end
 
+function testAll()
+    for i in [(8:18)...]
+        n = 2^i
+        a = from_random(n, n, Float64)
+        println("voor n = ", n)
+        oneTest(a)
+    end
+end
+
+function testMultDim()
+    a = from_random(10000)
+    oneTest(a)
+    a = from_random(10000, (10, 10, 10, 10))
+    oneTest(a)
+end
+
+testMultDim();
