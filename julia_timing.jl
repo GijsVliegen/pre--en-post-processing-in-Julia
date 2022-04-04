@@ -10,6 +10,12 @@ function operationEu(a)
     b = as_euler_angle(a)
     c = from_euler_angle(b)
 end
+
+function operationEu!(a)
+    b = as_euler_angle!(a)
+    c = from_euler_angle(b)
+end
+
 function operationAx(a)
     b = as_axis_angle(a)
     c = from_axis_angle(b)
@@ -45,6 +51,22 @@ function testAll()
     end
 end
 
+function testInPlaceVSNormalOnce(a)
+    println("Eu:")
+    @btime operationEu($a)
+    println("Eu!:")
+    @btime operationEu!($a)
+end
+
+function testInPlaceVSNormal()
+    for i in [(8:9)...]
+        n = 2^i
+        a = from_random(n, n, Float64)
+        println("voor n = ", n)
+        testInPlaceVSNormalOnce(a)
+    end
+end
+
 function testMultDim()
     a = from_random(10000)
     oneTest(a)
@@ -52,4 +74,4 @@ function testMultDim()
     oneTest(a)
 end
 
-testMultDim();
+testInPlaceVSNormal();

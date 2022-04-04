@@ -91,6 +91,51 @@ end
 
 #Euler angle heeft ZXZ structuur
 #input: [phi1, PHI, phi2]
+
+function as_euler_angle!(rotations ::Array{rotation})
+    return as!(qu2eu!, (3,), rotations)
+end
+
+function fill!(result, low, high)
+    result[low:high] = [(low:high)...]
+end
+
+function testInPlace()
+    result = zeros(50)
+    fill!(result, 2, 48)
+    return result
+end
+
+function as!(qu2x::Function, xSize ::Tuple, rotations ::Array{rotation})
+    l = tupleSize(xSize)
+    sizes = size(rotations)
+    flat_array = vec(rotations)
+    result = Array{Float64}(undef, tupleSize(sizes)*l)
+    for i in 1:length(flat_array)
+        qu2x(result, i*l-l+1, i*l, flat_array[i])
+    end
+    return reshape(result, (xSize..., sizes...))
+end
+
+function qu2eu!(result, low, high, rot ::rotation)
+    #moet unit quaternion zijn
+    q₀ = rot.ω
+    q₁ = rot.i
+    q₂ = rot.j
+    q₃ = rot.k
+    q₀₃ = q₀^2 + q₃^2
+    q₁₂ = q₁^2 + q₂^2
+    χ = sqrt(q₀₃ * q₁₂)
+    if (χ == 0 && q₁₂ == 0)
+        result[low:high] = [atan(-2*P*q₀*q₃, q₀^2 - q₃^2), 0.0, 0.0]
+    elseif (χ == 0 && q₀₃ == 0)
+        result[low:high] = [atan(2*q₁*q₂, q₁^2 - q₂^2), π, 0.0]
+    else #als χ != 0
+        result[low:high] = [atan((q₁*q₃ - P*q₀*q₂)/χ,(-P*q₀*q₁ - q₂*q₃)/χ),
+            atan(2*χ, q₀₃-q₁₂), atan((P*q₀*q₂ + q₁*q₃)/χ, (q₂*q₃ - P*q₀*q₁)/χ)]
+    end
+end
+
 function eu2qu(rot) ::rotation
     ϕ1 = rot[1]
     Φ = rot[2]
@@ -169,7 +214,7 @@ function ho2ax(rotation)
     small_h²  = small_h^2
     sh²_copy = 1
     if small_h == 0
-        return [0, 0, 1, 0]
+        return [0.0, 0.0, 1.0, 0.0]
     end
     h′ = rotation/small_h
     s = 0
@@ -195,9 +240,9 @@ function qu2eu(rot ::rotation)
     q₁₂ = q₁^2 + q₂^2
     χ = sqrt(q₀₃ * q₁₂)
     if (χ == 0 && q₁₂ == 0)
-        return [atan(-2*P*q₀*q₃, q₀^2 - q₃^2), 0, 0]
+        return [atan(-2*P*q₀*q₃, q₀^2 - q₃^2), 0.0, 0.0]
     elseif (χ == 0 && q₀₃ == 0)
-        return [atan(2*q₁*q₂, q₁^2 - q₂^2), π, 0]
+        return [atan(2*q₁*q₂, q₁^2 - q₂^2), π, 0.0]
     else #als χ != 0
         return [atan((q₁*q₃ - P*q₀*q₂)/χ,(-P*q₀*q₁ - q₂*q₃)/χ),
             atan(2*χ, q₀₃-q₁₂), atan((P*q₀*q₂ + q₁*q₃)/χ, (q₂*q₃ - P*q₀*q₁)/χ)]
@@ -226,7 +271,7 @@ function qu2ax(rot ::rotation)
     ω = 2*acos(q₀)
     if (ω == 0)
         #[n_0, n_1, n_2, w]
-        return [0, 0, 1, 0]
+        return [0.0, 0.0, 1.0, 0.0]
     end
     if (q₀ == 0)
         return [q₁, q₂, q₃, π]
@@ -255,7 +300,7 @@ function qu2ho(rotation ::rotation)
     q₃ = rotation.k
     ω = 2*acos(q₀)
     if ω == 0
-        return [0, 0, 0]
+        return [0.0, 0.0, 0.0]
     end
     s = 1/sqrt(q₁^2 + q₂^2 + q₃^2)
     n̂ = [s*q₁, s*q₂, s*q₃]
