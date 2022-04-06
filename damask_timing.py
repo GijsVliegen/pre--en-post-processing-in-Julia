@@ -53,6 +53,7 @@ def operationRo(a, l):
         totaltime += processET - processST
     print(totaltime/l * 10**3)
 
+#a zijn de rotaties, l is aantal herhalingen van de test
 def oneTest(a, l):
     operationEu(a, l)
     operationOm(a, l)
@@ -61,12 +62,11 @@ def oneTest(a, l):
     operationRo(a, l)
 
 def longTestRun():
-    print("EU - OM - AX - HO - RO")
-    for i in range (8,9):
-        l = 100
+    print("EU - OM - AX - HO - RO, all times in ms")
+    for i in range (15,16):
+        l = 1000
         n = 2**i
         print(n)
         a = damask.Rotation.from_random(n)
-
-oneTest(damask.Rotation.from_random(10000), 100)
-oneTest(damask.Rotation.from_random((10, 10, 10, 10)), 100)
+        oneTest(a, l)
+longTestRun()
