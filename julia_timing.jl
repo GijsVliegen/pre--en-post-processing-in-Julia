@@ -7,13 +7,8 @@ function operationOm(a)
 end
 
 function operationEu(a)
-    b = as_euler_angle(a)
-    c = from_euler_angle(b)
-end
-
-function operationEu!(a)
-    b = as_euler_angle!(a)
-    c = from_euler_angle(b)
+    b = as_Euler_angles(a)
+    c = from_Euler_angles(b)
 end
 
 function operationAx(a)
@@ -25,8 +20,8 @@ function operationHo(a)
     c = from_homochoric(b)
 end
 function operationRo(a)
-    b = as_rodriguesfrank(a)
-    c = from_rodriguesfrank(b)
+    b = as_Rodrigues_vector(a)
+    c = from_Rodrigues_vector(b)
 end
 
 function oneTest(a)
@@ -43,7 +38,7 @@ function oneTest(a)
 end
 
 function testAll()
-    for i in [(8:18)...]
+    for i in [(8:9)...]
         n = 2^i
         a = from_random(n, n, Float64)
         println("voor n = ", n)
@@ -74,4 +69,4 @@ function testMultDim()
     oneTest(a)
 end
 
-testInPlaceVSNormal();
+testAll();
