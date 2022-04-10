@@ -380,7 +380,7 @@ function from(x2qu::Function, nrOfDimension ::Int, l ::Int, array, P = -1)
         qu = x2qu(array[i:i+l-1], P)
         push!(result, qu)
     end
-    reshape(result, sizes[nrOfDimension+1:length(sizes)])
+    reshape(result, sizes[nrOfDimension+1:end])
 end
 
 function from_quaternion(q ::Array{<:Number, 1}, accept_homomorph = false, P = -1)
@@ -753,7 +753,16 @@ function as_axis_angle(rotations ::Array{Rotation}, degrees = false, pair = fals
         end
     end
     if pair
-        return (result[1:3, :], result[4, :])
+        shape = size(rotations)
+        allN = Array{Float64}(undef, length(rotations)*3)
+        allω = Array{Float64}(undef, length(rotations))
+        for i in 1:length(rotations)
+            allN[i*3-2:i*3] = result[i*4-3:i*4-1]
+            allω[i] = result[i*4]
+        end
+        reshape(allN, ((3,)..., shape...))
+        reshape(allω, shape)
+        return (allN, allω)
     end
     return result
 end
