@@ -52,7 +52,7 @@ end
 #in tegenstelling tot in damask wordt er niet rekening gehouden met NaN values
 #dit doen we omdat het niet is ingebouwd in isapprox()
 
-function isClose(first ::Rotation, other ::Rotation, rtol, atol, nanEquals = true)
+function isClose(first ::Rotation, other ::Rotation, rtol = 10^(-8), atol = 10^(-8), nanEquals = true)
     fcom = getComponents(first)
     scom = getComponents(other)
     for i in 1:4
@@ -63,7 +63,7 @@ function isClose(first ::Rotation, other ::Rotation, rtol, atol, nanEquals = tru
     return true
 end
 
-function isClose(first ::Array{Rotation, 1}, other ::Array{Rotation, 1}, rtol, atol, nanEquals = true)
+function isClose(first ::Array{Rotation}, other ::Array{Rotation}, rtol = 10^(-8), atol = 10^(-8), nanEquals = true)
     if length(first) != length(other)
         return false
     end
@@ -71,9 +71,6 @@ function isClose(first ::Array{Rotation, 1}, other ::Array{Rotation, 1}, rtol, a
     for i in 1:length(first)
         if !isClose(first[i], other[i], rtol, atol, nanEquals)
             result = false
-            println("oke het is fout: de twee quaternionen zijn:")
-            println(first[i])
-            println(other[i])
             break
         end
     end
@@ -88,52 +85,6 @@ end
 #voor de gebruiksvriendelijkheid kan het idee van bovenstaande code ook gebruikt worden.
 
 #Euler angle heeft ZXZ structuur
-
-function as_euler_angle!(rotations ::Array{Rotation})
-    return as!(qu2eu!, (3,), rotations)
-end
-
-function fill!(result, low, high)
-    result[low:high] = [(low:high)...]
-end
-
-function testInPlace()
-    result = zeros(50)
-    fill!(result, 2, 48)
-    return result
-end
-
-function as!(qu2x::Function, xSize ::Tuple, rotations ::Array{Rotation})
-    l = tupleSize(xSize)
-    sizes = size(rotations)
-    flat_array = vec(rotations)
-    result = Array{Float64}(undef, tupleSize(sizes)*l)
-    for i in 1:length(flat_array)
-        qu2x(result, i*l-l+1, i*l, flat_array[i])
-    end
-    return reshape(result, (xSize..., sizes...))
-end
-
-#input = [phi1, PHI, phi2]
-function qu2eu!(result, low, high, rot ::Rotation)
-    #moet unit quaternion zijn
-    q₀ = rot.ω
-    q₁ = rot.i
-    q₂ = rot.j
-    q₃ = rot.k
-    q₀₃ = q₀^2 + q₃^2
-    q₁₂ = q₁^2 + q₂^2
-    χ = sqrt(q₀₃ * q₁₂)
-    if (χ == 0 && q₁₂ == 0)
-        result[low:high] = [atan(-2*P*q₀*q₃, q₀^2 - q₃^2), 0.0, 0.0]
-    elseif (χ == 0 && q₀₃ == 0)
-        result[low:high] = [atan(2*q₁*q₂, q₁^2 - q₂^2), π, 0.0]
-    else #als χ != 0
-        result[low:high] = [atan((q₁*q₃ - P*q₀*q₂)/χ,(-P*q₀*q₁ - q₂*q₃)/χ),
-            atan(2*χ, q₀₃-q₁₂), atan((P*q₀*q₂ + q₁*q₃)/χ, (q₂*q₃ - P*q₀*q₁)/χ)]
-    end
-end
-
 #input = [phi1, PHI, phi2]
 function eu2qu(rot, P = -1) ::Rotation
     ϕ1 = rot[1]
@@ -380,19 +331,26 @@ function Base.:inv(rot ::Rotation)
     return Rotation(rot.ω, -rot.i, -rot.j, -rot.k)
 end
 
+"""
+    from_random() -> Rotation
+
+Constructs a random Rotation.
+"""
 
 function from_random()
     return from_random(1)[1]
 end
 """
-    from_random(n, sizes = n) -> Array{Rotation}
+    from_random(dims) -> Array{Rotation}
 
-Construeert een array van random rotaties, met gegeven dimensies
+Constructs an array of random rotations, with the given dimensions.
+
+# Arguments
+
+   - `dims ::Tuple` dimensions of the resulting tensor 
 """
-function from_random(n, sizes = n) ::Array{Rotation}
-    if (n != tupleSize(sizes))
-        print("invalid dimensions")
-    end
+function from_random(dims ::Tuple) ::Array{Rotation}
+    n = tupleSize(dims)
     rotations = Rotation[]
     for i = 1:n
         u1 = rand()
@@ -422,15 +380,15 @@ function from(x2qu::Function, nrOfDimension ::Int, l ::Int, array, P = -1)
     reshape(result, sizes[nrOfDimension+1:length(sizes)])
 end
 
-function from_quaternion(array ::Array{<:Number, 1}, accept_homomorph = false, P = -1)
+function from_quaternion(q ::Array{<:Number, 1}, accept_homomorph = false, P = -1)
     if accept_homomorph
-        for i in 1:4:length(array)
-            if array[i] < 0
-                array[i:i+3] = -array[i:i+3]
+        for i in 1:4:length(q)
+            if q[i] < 0
+                q[i:i+3] = -q[i:i+3]
             end
         end
     end
-    return qu2qu(array, P)
+    return qu2qu(q, P)
 end
 
 #moeten deze in positive real hemisphere zijn? en wat is dan de logica hierachter?
@@ -439,12 +397,12 @@ end
 
 #in de python damask is het shape (..., 4), wij doen (4,...), zou dit veel uitmaken?
 """
-    from_quaternion(array, accept_homomorph = false, P = -1) -> Array{Rotation}
+    from_quaternion(q, accept_homomorph = false, P = -1) -> Array{Rotation}
 
 Initialize from quaternion.
 
 # Arguments
-   - `array ::Array`: shape (4,…)
+   - `q ::Array`: shape (4,…)
 
         Unit quaternion (q₀, q₁, q₂, q₃) in positive real hemisphere, i.e. ǀqǀ = 1, q_0 ≥ 0.
 
@@ -464,32 +422,32 @@ julia> from_quaternion(reshape([(1:16)...], 4, 2, 2))
  Rotation(5, 6, 7, 8)  Rotation(13, 14, 15, 16)
 ```
 """
-function from_quaternion(array ::Array{<:Number}, accept_homomorph = false, P = - 1)
+function from_quaternion(q ::Array{<:Number}, accept_homomorph = false, P = - 1)
     if accept_homomorph
-        for i in 1:4:length(array)
-            if array[i] < 0
-                array[i:i+3] = array[i:i+3]*-1
+        for i in 1:4:length(q)
+            if q[i] < 0
+                q[i:i+3] = q[i:i+3]*-1
             end
         end
     end
-    return from(qu2qu, 1, 4, array, P)
+    return from(qu2qu, 1, 4, q, P)
 end
 
-function from_Euler_angles(array ::Array{<:Number, 1}, degrees = false)
+function from_Euler_angles(phi ::Array{<:Number, 1}, degrees = false)
     if degrees
-        return eu2qu(array/180*pi, -1)
+        return eu2qu(phi/180*pi, -1)
     end
-    return eu2qu(array, -1)
+    return eu2qu(phi, -1)
 end
 
 #deze voorwaarden worden opnieuw nergens gechecked, misschien dit checken in de functie eu2qu?
 """
-    from_Euler_angles(array, degrees = false) -> Array{Rotation}
+    from_Euler_angles(phi, degrees = false) -> Array{Rotation}
 
 Initialize from Bungle Euler angles.
 
 # Arguments
-   - `array ::Array`: shape (3,…)
+   - `phi ::Array`: shape (3,…)
 
         Euler angles (φ1 ∈ [0,2π], ϕ ∈ [0,π], φ2 ∈ [0,2π]) or (φ1 ∈ [0,360], ϕ ∈ [0,180], φ2 ∈ [0,360]) if degrees == true.
 
@@ -497,31 +455,31 @@ Initialize from Bungle Euler angles.
 
         Euler angles are given in degrees. Defaults to false.
 """
-function from_Euler_angles(array ::Array{<:Number}, degrees = false) ::Array{Rotation}
+function from_Euler_angles(phi ::Array{<:Number}, degrees = false) ::Array{Rotation}
     if degrees
-        array = array/180*pi
+        phi = phi/180*pi
     end
-    return from(eu2qu, 1, 3, array)
+    return from(eu2qu, 1, 3, phi)
 end
 
-function from_axis_angle(array ::Array{<:Number, 1}, degrees = false, normalize = false, P = -1) ::Rotation
+function from_axis_angle(axis_angle ::Array{<:Number, 1}, degrees = false, normalize = false, P = -1) ::Rotation
     if degrees
-        array[4] = array[4]/180*pi
+        axis_angle[4] = axis_angle[4]/180*pi
     end
     if normalize
-        LinearAlgebra.normalize!(array[1:3])
+        LinearAlgebra.normalize!(axis_angle[1:3])
     end
-    return ax2qu(array)
+    return ax2qu(axis_angle)
 end
 
 #deze voorwaarden worden opnieuw nergens gechecked, misschien dit checken in de functie ax2qu?
 """
-    from_axis_angle(array, degrees = false, normalize = false, P = -1) -> Array{Rotation}
+    from_axis_angle(axis_angle, degrees = false, normalize = false, P = -1) -> Array{Rotation}
 
 Initialize from Axis angle pair.
 
 # Arguments
-   - `array ::Array{<:Number}`: shape (4,…)
+   - `axis_angle ::Array{<:Number}`: shape (4,…)
 
         Axis and angle (n_1, n_2, n_3, ω) with ǀnǀ = 1 and ω ∈ [0,π] or ω ∈ [0,180] if degrees == true.
 
@@ -538,18 +496,18 @@ Initialize from Axis angle pair.
         Sign convention. Defaults to -1.
 """
 
-function from_axis_angle(array ::Array{<:Number}, degrees ::Bool = false, normalize ::Bool = false, P ::Int = -1) ::Array{Rotation}
+function from_axis_angle(axis_anglearray ::Array{<:Number}, degrees ::Bool = false, normalize ::Bool = false, P ::Int = -1) ::Array{Rotation}
     if degrees
-        for i in 1:4:length(array)
-            array[i+3] = array[i+3]/180*pi
+        for i in 1:4:length(axis_angle)
+            axis_angle[i+3] = axis_angle[i+3]/180*pi
         end
     end
     if normalize
-        for i in 1:4:length(array)
-            array[i:i+2] = LinearAlgebra.normalize(array[i:i+2])
+        for i in 1:4:length(axis_angle)
+            axis_angle[i:i+2] = LinearAlgebra.normalize(axis_angle[i:i+2])
         end
     end
-    return from(ax2qu, 1, 4, array)
+    return from(ax2qu, 1, 4, axis_angle)
 end
 
 #deze voorwaarden worden nergens gechecked, misschien dit checken in de functie om2qu?
@@ -591,6 +549,7 @@ end
     from_parallel(a,b) -> Array{Rotation}
 
 Initialize from pairs of two orthogonal lattice basis vectors.
+Currently not implemented!
 
 # Arguments
 
@@ -607,39 +566,39 @@ function from_parallel(a, b) ::Array{rotation}
 end
 
 
-function from_matrix(array ::Array{<:Number, 2}) ::Rotation
-    return om2qu(array)
+function from_matrix(R ::Array{<:Number, 2}) ::Rotation
+    return om2qu(R)
 end
 
 #deze voorwaarden worden nergens gechecked, misschien dit checken in de functie om2qu?
 """
-    from_matrix(array ::Array{<:Number}) -> Array{Rotation}
+    from_matrix(R ::Array{<:Number}) -> Array{Rotation}
 
 Initialize from rotation matrix.
 
 # Arguments
-   - `array ::Array{<:Number}`: shape (3, 3,…)
+   - `R ::Array{<:Number}`: shape (3, 3,…)
 
         Rotation matrix with det(R) = 1, R.T ∙ R = I.
 """
-function from_matrix(array ::Array{<:Number})
-    return from(om2qu, 2, 9, array)
+function from_matrix(R ::Array{<:Number})
+    return from(om2qu, 2, 9, R)
 end
 
-function from_Rodrigues_vector(array ::Array{<:Number, 1}, normalize ::Bool = False, P ::Int = -1)
+function from_Rodrigues_vector(rho ::Array{<:Number, 1}, normalize ::Bool = False, P ::Int = -1)
     if normalize
-        LinearAlgebra.normalize!(array[1:3])
+        LinearAlgebra.normalize!(rho[1:3])
     end
-    return ro2qu(array, P)
+    return ro2qu(rho, P)
 end
 
 """
-    from_Rodrigues_vector(array, normalize = false, P = -1) -> Array{Rotation}
+    from_Rodrigues_vector(rho, normalize = false, P = -1) -> Array{Rotation}
 
 Initialize from Rodrigues–Frank vector (angle separated from axis).
 
 # Arguments
-   - `array ::Array{<:Number}`: shape (4,…)
+   - `rho ::Array{<:Number}`: shape (4,…)
 
         Rodrigues–Frank vector (n_1, n_2, n_3, tan(ω/2)) with ǀnǀ = 1 and ω ∈ [0,π].
    
@@ -652,21 +611,21 @@ Initialize from Rodrigues–Frank vector (angle separated from axis).
         Sign convention. Defaults to -1.
 
 """
-function from_Rodrigues_vector(array ::Array{<:Number}, normalize ::Bool = false, P ::Int = -1)
+function from_Rodrigues_vector(rho ::Array{<:Number}, normalize ::Bool = false, P ::Int = -1)
     if normalize
-        for i in 1:4:length(array)
-            array[i:i+2] = LinearAlgebra.normalize(array[i:i+2])
+        for i in 1:4:length(rho)
+            rho[i:i+2] = LinearAlgebra.normalize(rho[i:i+2])
         end
     end
-    from(ro2qu, 1, 4, array, P)
+    from(ro2qu, 1, 4, rho, P)
 end
 
-function from_homochoric(array ::Array{<:Number, 1}, P ::Int = -1)
-    return ho2qu(array, P)
+function from_homochoric(h ::Array{<:Number, 1}, P ::Int = -1)
+    return ho2qu(h, P)
 end
 
 """
-    from_homochoric(array, P = -1) -> Array{Rotation}
+    from_homochoric(h, P = -1) -> Array{Rotation}
 
 Initialize from homochoric vector.
 
@@ -680,8 +639,8 @@ Initialize from homochoric vector.
         Sign convention. Defaults to -1.
 
 """
-function from_homochoric(array ::Array{<:Number}, P ::Int = -1)
-    from(ho2qu, 1, 3, array, P)
+function from_homochoric(h ::Array{<:Number}, P ::Int = -1)
+    from(ho2qu, 1, 3, h, P)
 end
 
 function as(qu2x::Function, xSize ::Tuple, rotations ::Array{Rotation})
