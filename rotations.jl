@@ -336,9 +336,12 @@ end
 
 Constructs a random Rotation.
 """
-
 function from_random()
     return from_random(1)[1]
+end
+
+function from_random(n)
+    return from_random((n,))
 end
 """
     from_random(dims) -> Array{Rotation}
@@ -362,7 +365,7 @@ function from_random(dims ::Tuple) ::Array{Rotation}
         end
         push!(rotations, copy(h))
     end
-    return reshape(rotations, sizes)
+    return reshape(rotations, dims)
 end
 
 
@@ -496,7 +499,7 @@ Initialize from Axis angle pair.
         Sign convention. Defaults to -1.
 """
 
-function from_axis_angle(axis_anglearray ::Array{<:Number}, degrees ::Bool = false, normalize ::Bool = false, P ::Int = -1) ::Array{Rotation}
+function from_axis_angle(axis_angle ::Array{<:Number}, degrees ::Bool = false, normalize ::Bool = false, P ::Int = -1) ::Array{Rotation}
     if degrees
         for i in 1:4:length(axis_angle)
             axis_angle[i+3] = axis_angle[i+3]/180*pi
