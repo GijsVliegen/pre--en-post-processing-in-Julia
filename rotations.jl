@@ -129,12 +129,9 @@ function ax2qu(rot, P = -1) ::Rotation
 end
 
 #input = [n_0, n_1, n_2, tan(ω/2)]
-#om de een of andere rede klopt dit niet, god mag weten waarom
 function ro2ax(rotation)
     n = rotation[1:3]
     ρ = norm(n)
-    #als ik de paper gebruik zou het 2*atan(rho) moeten zijn,
-    #dit werkt echter niet, 2*atan(rotation[4]) werkt wel.
     return vcat(n/ρ, [2*atan(rotation[4])])
 end
 
