@@ -38,9 +38,9 @@ function oneTest(a)
 end
 
 function testAll()
-    for i in [(15,16)...]
+    for i in [(1: 10)...]
         n = 2^i
-        a = from_random(n, n)
+        a = from_random(n)
         println("voor n = ", n)
         oneTest(a)
     end
@@ -54,7 +54,7 @@ function testInPlaceVSNormalOnce(a)
 end
 
 function testInPlaceVSNormal()
-    for i in [(15:16)...]
+    for i in [(1:10)...]
         n = 2^i
         a = from_random(n, n)
         println("voor n = ", n)
