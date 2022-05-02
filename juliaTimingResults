@@ -1,0 +1,176 @@
+voor n = 2
+Om:
+  2.632 μs (123 allocations: 3.09 KiB)
+Eu:
+  2.109 μs (79 allocations: 2.02 KiB)
+Ax:
+  1.440 μs (49 allocations: 1.94 KiB)
+Ho:
+  2.091 μs (69 allocations: 3.36 KiB)
+Ro:
+  1.674 μs (53 allocations: 2.72 KiB)
+voor n = 4
+Om:
+  4.718 μs (239 allocations: 5.77 KiB)
+Eu:
+  3.754 μs (151 allocations: 3.63 KiB)
+Ax:
+  2.410 μs (91 allocations: 3.47 KiB)
+Ho:
+  3.728 μs (131 allocations: 6.31 KiB)
+Ro:
+  2.904 μs (99 allocations: 5.03 KiB)
+voor n = 8
+Om:
+  8.933 μs (472 allocations: 11.20 KiB)
+Eu:
+  7.049 μs (296 allocations: 6.92 KiB)
+Ax:
+  4.462 μs (176 allocations: 6.61 KiB)
+Ho:
+  7.008 μs (256 allocations: 12.30 KiB)
+Ro:
+  5.324 μs (192 allocations: 9.73 KiB)
+voor n = 16
+Om:
+  17.335 μs (937 allocations: 22.03 KiB)
+Eu:
+  13.386 μs (585 allocations: 13.53 KiB)
+Ax:
+  8.193 μs (345 allocations: 12.91 KiB)
+Ho:
+  14.472 μs (505 allocations: 24.28 KiB)
+Ro:
+  10.120 μs (377 allocations: 19.16 KiB)
+voor n = 32
+Om:
+  34.570 μs (1866 allocations: 43.70 KiB)
+Eu:
+  27.136 μs (1162 allocations: 26.69 KiB)
+Ax:
+  16.979 μs (682 allocations: 25.45 KiB)
+Ho:
+  26.394 μs (1002 allocations: 48.19 KiB)
+Ro:
+  19.822 μs (746 allocations: 37.95 KiB)
+voor n = 64
+Om:
+  68.350 μs (3723 allocations: 86.98 KiB)
+Eu:
+  53.644 μs (2315 allocations: 52.94 KiB)
+Ax:
+  31.073 μs (1355 allocations: 50.47 KiB)
+Ho:
+  51.825 μs (1995 allocations: 95.94 KiB)
+Ro:
+  39.040 μs (1483 allocations: 75.47 KiB)
+voor n = 128
+Om:
+  136.266 μs (7436 allocations: 173.55 KiB)
+Eu:
+  106.863 μs (4620 allocations: 105.53 KiB)
+Ax:
+  61.319 μs (2700 allocations: 100.53 KiB)
+Ho:
+  103.643 μs (3980 allocations: 191.53 KiB)
+Ro:
+  83.527 μs (2956 allocations: 150.53 KiB)
+voor n = 256
+Om:
+  272.036 μs (14862 allocations: 346.56 KiB)
+Eu:
+  214.717 μs (9229 allocations: 210.59 KiB)
+Ax:
+  122.588 μs (5389 allocations: 200.59 KiB)
+Ho:
+  207.386 μs (7949 allocations: 382.59 KiB)
+Ro:
+  154.394 μs (5901 allocations: 300.59 KiB)
+voor n = 512
+Om:
+  543.605 μs (29712 allocations: 692.64 KiB)
+Eu:
+  429.076 μs (18447 allocations: 420.67 KiB)
+Ax:
+  242.779 μs (10767 allocations: 400.67 KiB)
+Ho:
+  413.202 μs (15887 allocations: 764.67 KiB)
+Ro:
+  308.273 μs (11791 allocations: 600.67 KiB)
+voor n = 1024
+Om:
+  1.089 ms (59409 allocations: 1.35 MiB)
+Eu:
+  862.185 μs (36881 allocations: 840.69 KiB)
+Ax:
+  484.834 μs (21521 allocations: 800.69 KiB)
+Ho:
+  825.936 μs (31761 allocations: 1.49 MiB)
+Ro:
+  618.909 μs (23569 allocations: 1.17 MiB)
+voor n = 2048
+Om:
+  2.215 ms (118802 allocations: 2.70 MiB)
+Eu:
+  1.772 ms (73746 allocations: 1.64 MiB)
+Ax:
+  1.004 ms (43026 allocations: 1.56 MiB)
+Ho:
+  1.893 ms (63506 allocations: 2.99 MiB)
+Ro:
+  1.276 ms (47122 allocations: 2.34 MiB)
+voor n = 4096
+Om:
+  4.690 ms (237587 allocations: 5.41 MiB)
+Eu:
+  3.693 ms (147475 allocations: 3.28 MiB)
+Ax:
+  2.077 ms (86035 allocations: 3.13 MiB)
+Ho:
+  3.502 ms (126995 allocations: 5.97 MiB)
+Ro:
+  2.610 ms (94227 allocations: 4.69 MiB)
+voor n = 8192
+Om:
+  9.516 ms (475156 allocations: 10.81 MiB)
+Eu:
+  7.395 ms (294932 allocations: 6.56 MiB)
+Ax:
+  4.219 ms (172052 allocations: 6.25 MiB)
+Ho:
+  7.003 ms (253972 allocations: 11.94 MiB)
+Ro:
+  5.270 ms (188436 allocations: 9.38 MiB)
+voor n = 16384
+Om:
+  19.809 ms (950293 allocations: 21.63 MiB)
+Eu:
+  14.892 ms (589845 allocations: 13.13 MiB)
+Ax:
+  8.459 ms (344085 allocations: 12.50 MiB)
+Ho:
+  14.271 ms (507925 allocations: 23.88 MiB)
+Ro:
+  10.874 ms (376853 allocations: 18.75 MiB)
+voor n = 32768
+Om:
+  42.698 ms (1900566 allocations: 43.25 MiB)
+Eu:
+  30.705 ms (1179670 allocations: 26.25 MiB)
+Ax:
+  17.447 ms (688150 allocations: 25.00 MiB)
+Ho:
+  34.049 ms (1015830 allocations: 47.75 MiB)
+Ro:
+  23.989 ms (753686 allocations: 37.50 MiB)
+voor n = 65536
+Om:
+  92.204 ms (3801111 allocations: 86.50 MiB)
+Eu:
+  69.719 ms (2359319 allocations: 52.50 MiB)
+Ax:
+  41.207 ms (1376279 allocations: 50.00 MiB)
+Ho:
+  73.350 ms (2031639 allocations: 95.50 MiB)
+Ro:
+  53.974 ms (1507351 allocations: 75.00 MiB)
