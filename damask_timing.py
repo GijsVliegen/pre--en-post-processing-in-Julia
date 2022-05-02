@@ -81,7 +81,7 @@ def oneTest(a, l, row):
 def longTestRun():
     print("EU - OM - AX - HO - RO, all times in ms")
     min = 1
-    max = 10
+    max = 17
     for i in range (min,max):
         sheet["F"+str(2+i-min)] = 2**i
         l = 1000
@@ -101,4 +101,4 @@ def main():
 main()
 longTestRun()
 rand = random.randrange(1, 100000)
-workbook.save("meting WV py: "+str(rand)+".xlsx")
+workbook.save("meting WV py.xlsx")
