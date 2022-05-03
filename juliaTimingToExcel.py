@@ -1,7 +1,7 @@
 
 from openpyxl import Workbook, workbook, load_workbook
 import random
-workbook = load_workbook(filename="metingen WV py-rot-fast.xlsx")
+workbook = load_workbook(filename="meting WV jl.xlsx")
 workbook.sheetnames
 ['Sheet 1']
 sheet = workbook.active
@@ -37,8 +37,11 @@ for i in data:
         sheet[columnString[5]+str(rowCounter)] = str(n)
     if i.startswith("  "):
         end = i.find("(") - 4 #nakijken
-        res = i[2: end]
         eenheid = i[end+1:end+3]
+        if eenheid.startswith(" "):
+            res = i[2: end+1]
+        else:
+            res = i[2: end]
         print("res = ", res)
         print("eenheid = ", eenheid)
         sheet[columnString[columnCounter]+str(rowCounter)] = str(res)

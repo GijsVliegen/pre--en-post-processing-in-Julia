@@ -174,3 +174,69 @@ Ho:
   73.350 ms (2031639 allocations: 95.50 MiB)
 Ro:
   53.974 ms (1507351 allocations: 75.00 MiB)
+voor n = 131072
+Om:
+  209.412 ms (7602200 allocations: 173.00 MiB)
+Eu:
+  122.214 ms (4718616 allocations: 105.00 MiB)
+Ax:
+  74.623 ms (2752536 allocations: 100.00 MiB)
+Ho:
+  137.305 ms (4063256 allocations: 191.00 MiB)
+Ro:
+  101.295 ms (3014680 allocations: 150.00 MiB)
+voor n = 262144
+Om:
+  391.310 ms (15204377 allocations: 345.00 MiB)
+Eu:
+  253.089 ms (9437209 allocations: 209.00 MiB)
+Ax:
+  169.385 ms (5505049 allocations: 199.00 MiB)
+Ho:
+  305.994 ms (8126489 allocations: 381.00 MiB)
+Ro:
+  228.302 ms (6029337 allocations: 299.00 MiB)
+voor n = 524288
+Om:
+  884.075 ms (30408730 allocations: 689.00 MiB)
+Eu:
+  582.976 ms (18874394 allocations: 417.00 MiB)
+Ax:
+  373.637 ms (11010074 allocations: 397.00 MiB)
+Ho:
+  689.263 ms (16252954 allocations: 761.00 MiB)
+Ro:
+  541.185 ms (12058650 allocations: 597.00 MiB)
+voor n = 1048576
+Om:
+  1.999 s (60817435 allocations: 1.34 GiB)
+Eu:
+  1.285 s (37748763 allocations: 833.00 MiB)
+Ax:
+  877.359 ms (22020123 allocations: 793.00 MiB)
+Ho:
+  1.507 s (32505883 allocations: 1.49 GiB)
+Ro:
+  1.189 s (24117275 allocations: 1.17 GiB)
+voor n = 2097152
+Om:
+  4.245 s (121634844 allocations: 2.69 GiB)
+Eu:
+  2.704 s (75497500 allocations: 1.63 GiB)
+Ax:
+  1.808 s (44040220 allocations: 1.55 GiB)
+Ho:
+  3.268 s (65011740 allocations: 2.97 GiB)
+Ro:
+  2.565 s (48234524 allocations: 2.33 GiB)
+voor n = 4194304
+Om:
+  8.303 s (243269661 allocations: 5.38 GiB)
+Eu:
+  5.328 s (150994973 allocations: 3.25 GiB)
+Ax:
+  4.139 s (88080413 allocations: 3.09 GiB)
+Ho:
+  6.798 s (130023453 allocations: 5.94 GiB)
+Ro:
+  5.324 s (96469021 allocations: 4.66 GiB)
