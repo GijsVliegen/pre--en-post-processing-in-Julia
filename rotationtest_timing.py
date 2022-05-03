@@ -4,7 +4,7 @@ from openpyxl import Workbook, workbook, load_workbook
 import rotationtest
 import random
 
-workbook = load_workbook(filename="metingen WV py-rot-fast.xlsx")
+workbook = load_workbook(filename="meting WV py test.xlsx")
 workbook.sheetnames
 ['Sheet 1']
 sheet = workbook.active
@@ -95,11 +95,11 @@ def oneTest(a, l, row):
 
 def longTestRun():
     print("EU - OM - AX - HO - RO, all times in ms")
-    min = 1
-    max = 17
+    min = 17
+    max = 23
     for i in range (min,max):
-        sheet["F"+str(2+i-min)] = i
-        l = 50
+        sheet["F"+str(2+i-min+15)] = i
+        l = 1
         n = 2**i
         print(n)
         a = damask.Rotation.from_random(n)

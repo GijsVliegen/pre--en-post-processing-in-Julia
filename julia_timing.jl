@@ -38,7 +38,7 @@ function oneTest(a)
 end
 
 function testAll()
-    for i in [(11: 16)...]
+    for i in [(17: 22)...]
         n = 2^i
         a = from_random(n)
         println("voor n = ", n)
