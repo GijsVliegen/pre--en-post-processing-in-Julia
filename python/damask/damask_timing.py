@@ -1,6 +1,7 @@
 from functools import total_ordering
 import random
 import damask, time
+import timeit
 from openpyxl import Workbook, workbook, load_workbook
 
 workbook = load_workbook(filename="meting WV py.xlsx")
@@ -80,8 +81,8 @@ def oneTest(a, l, row):
 
 def longTestRun():
     print("EU - OM - AX - HO - RO, all times in ms")
-    min = 17
-    max = 23
+    min = 1
+    max = 5
     for i in range (min,max):
         sheet["F"+str(2+i-min+15)] = 2**i
         l = 50
@@ -98,7 +99,33 @@ def main():
     sheet["E1"] = "RO"
     sheet["F1"] = "n"
     sheet["G1"] = "all times are in ms"
-main()
-longTestRun()
+#main()
+#longTestRun()
 rand = random.randrange(1, 100000)
 workbook.save("meting WV py.xlsx")
+
+
+
+def operationEuTwo(a):
+    b = a.as_Euler_angles()
+    c = damask.Rotation.from_Euler_angles(b)
+
+totaltime = 0
+a = damask.Rotation.from_random(2)
+processST = time.process_time()
+operationEuTwo(a)
+processET = time.process_time()
+totaltime += processET - processST
+print(totaltime * 10**3)
+
+main()
+longTestRun()
+
+totaltime = 0
+a = damask.Rotation.from_random(2)
+processST = time.process_time()
+operationEu(a, 1)
+processET = time.process_time()
+totaltime += processET - processST
+print(totaltime * 10**3)
+

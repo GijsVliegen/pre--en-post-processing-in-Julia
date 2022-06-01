@@ -234,11 +234,10 @@ function qu2ro(rotation ::Rotation)
     q₁ = rotation.i
     q₂ = rotation.j
     q₃ = rotation.k
+    """berekent de norm"""
     s = sqrt(q₁^2 + q₂^2 + q₃^2)
+    """berekent de Rodrigues-Frank vector"""
     t = tan(acos(q₀))
-    #oppassen als s klein wordt!!!
-    #rodriguesFrank opslaan als vector van 4 elementen
-    #[n_0, n_1, n_2, t]
     return [q₁/s, q₂/s, q₃/s, t]
 end
 
