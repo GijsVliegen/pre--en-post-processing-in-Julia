@@ -1,3 +1,7 @@
+"""The code below is mainly from the test code of DAMASK,
+https://damask.mpie.de/, we used it to test a more simple implementation of the 
+Rotations class of DAMASK"""
+
 import numpy as np
 from scipy import stats
 
